@@ -1,9 +1,8 @@
-import subprocess #allows for command line execution
 import ipaddress  #Allows for IP address manipulation
 import sys
-import re
 import os 
 import datetime
+import csv 
 
 def isValidIP(ip_address): 
     valid = []
@@ -24,27 +23,21 @@ ip_address = ipaddress.ip_interface(ip_address)
 # Get a handle on network
 network = ipaddress.ip_network(str(ip_address.network))
 
+csv = open("information.csv", "a")
+csv.write("Date/Time"+ "," + "Host" + "," + "Ping" + "\n")
 
-ip_ping_response = []
-ip_ping_timeout = []
-ip_ping_refuse = []
-
-#iterate through ip in network
 for ip in network:
-    response = os.system("ping -c 1 " + str(ip))
-
+    response = os.system("ping -c 1 -W 5 " + str(ip) + " > /dev/null")
+    pinged = "no"
+    
     if response == 0:
         print("0 Connection accepted from ", str(ip))
-        ip_ping_response.append(ip)
+        pinged = "yes"
     elif response == 1: 
         print("1 Timeout from ", str(ip))
-        ip_ping_timeout.append(ip)
     else:
         print("2 Refused from ", str(ip))
-        ip_ping_refuse.append(ip)
-    print(datetime.datetime.now())
+    
+    csv.write(str(datetime.datetime.now().replace(microsecond=0)) + "," + str(ip) + "," + str(pinged)+"\n")
 
-
-
-print(ip_ping_response)
-
+csv.close()
