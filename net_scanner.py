@@ -3,6 +3,22 @@ import sys
 import os 
 import datetime
 import csv 
+import socket
+
+ports = [19,21,22,23,25,80,110,137,138,139,143,179,389,43,445,902,903,993,995,1080,1433,3306,3389,5900]
+
+def TCPConnect(ip):
+    for port in ports:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(2) 
+        result = sock.connect_ex((str(ip),port))
+        
+        # SUCCESSFU
+        if result == 0:
+            print ("Port: " + str(port) + " is open on " + str(ip))
+        else:
+            print ("Port: " + str(port) + " is closed on " + str(ip))
+        sock.close()
 
 def isValidIP(ip_address): 
     valid = []
@@ -13,7 +29,6 @@ def isValidIP(ip_address):
     return valid
     
 ip_address = input("IP Address: ")
-
 while not isValidIP(ip_address):
     ip_address = input("IP Address: ")
 
@@ -33,6 +48,7 @@ for ip in network:
     if response == 0:
         print("0 Connection accepted from ", str(ip))
         pinged = "yes"
+        TCPConnect(ip)
     elif response == 1: 
         print("1 Timeout from ", str(ip))
     else:
