@@ -39,7 +39,7 @@ ip_address = ipaddress.ip_interface(ip_address)
 network = ipaddress.ip_network(str(ip_address.network))
 
 csv = open("information.csv", "a")
-csv.write("Date/Time"+ "," + "Host" + "," + "Ping" + "\n")
+csv.write("Date/Time"+ "," + "Host" + "," + "Ping" + "," + "TCP/19" + "," + "TCP/21" + "," + "TCP/22" + "," + "TCP/23" + "," + "TCP/25" + "," + "TCP/43" + "," + "TCP/80" + "TCP/110" + "," + "TCP/137" + "," + "TCP/138" + "," + "TCP/139" + "," + "TCP/143" + "," + "TCP/143" + "," + "TCP/179" + "," + "TCP/389" + "," + "TCP/445" + "," + "TCP/903" + "," + "TCP/993" + "," + "TCP/995" + "," + "TCP/1080" + "," + "TCP/1433" + "," + "TCP/3306" + "," + "TCP/3389" + "," + "TCP/5900"+ "," + "\n")
 
 for ip in network:
     response = os.system("ping -c 1 -W 5 " + str(ip) + " > /dev/null")
