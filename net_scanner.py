@@ -37,7 +37,8 @@ class Network:
 
         csv.close()
 
-    def ping_network(self):
+    def ping_network(self):       
+        self.csvRows = ""
 
         for ip in self.ipNetwork:
             
@@ -85,5 +86,4 @@ while not Network.is_valid_ip(ipAddress):
 network1 = Network(ipAddress)
 
 network1.ping_network()
-
 network1.write_to_csv("information.csv")
