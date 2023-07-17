@@ -4,6 +4,8 @@ import os
 import datetime
 import csv 
 import socket
+import pandas as pd 
+import pyodbc 
 
 protocol = ["Chargen","FTP","SSH","Telnet","SMTP","HTTP","POP3","NETBIOS","NETBIOS","NETBIOS","IMAP","BGP","LDAP","HTTPS","Microsoft directory services","VMware ESX","VMware ESX","IMAP TLS/SSL","POP3 TLS/SSL","SOCKS proxy","Microsoft SQL server","MySQL server","Remote desktop protocol","VNC remote desktop"]
 
@@ -16,7 +18,7 @@ class Network:
         self.csvRows = ""
         self.csvColumnsExist = False
         self.ports = [19,21,22,23,25,80,110,137,138,139,143,179,389,43,445,902,903,993,995,1080,1433,3306,3389,5900]
-    
+        self.fileName = "information.csv"
     @staticmethod
     def is_valid_ip(ipAddress):
         valid = []
@@ -29,7 +31,9 @@ class Network:
         return valid
     
     def write_to_csv(self, fileName):
-        csv = open(fileName, "a")
+        
+        self.fileName = fileName
+        csv = open(self.fileName, "a")
 
         if self.csvColumnsExist == False:
             csv.write(self.csvColumns)
@@ -80,8 +84,8 @@ class Network:
 
 
 
-    def connection():
-        data = pd.read_csv(r'C:\Users\roselyn\Desktop\Test\information.csv')
+    def connection(self):
+        data = pd.read_csv(self.fileName, index_col=False, sep=",")
         df = pd.DataFrame(data)
         print(df)
 
@@ -89,8 +93,8 @@ class Network:
 
         database = pyodbc.connect(
                 host = "localhost",
-                user = input(print("Username: ")),
-                password = input(print("Password: "))
+                user = input("Username: "),
+                password = input("Password: ")
             )
 
         #executes SQL statements
@@ -125,3 +129,4 @@ network1 = Network(ipAddress)
 network1.ping_network()
 network1.write_to_csv("information.csv")
 
+network1.connection()
