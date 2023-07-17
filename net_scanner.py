@@ -78,7 +78,44 @@ class Network:
                 elif index == 23:
                     self.csvRows +="\n"
 
-    
+
+
+    def connection():
+        data = pd.read_csv(r'C:\Users\roselyn\Desktop\Test\information.csv')
+        df = pd.DataFrame(data)
+        print(df)
+
+        #creates connection object
+
+        database = pyodbc.connect(
+                host = "localhost",
+                user = input(print("Username: ")),
+                password = input(print("Password: "))
+            )
+
+        #executes SQL statements
+
+        cursor = database.cursor()
+
+        cursor.execute('''
+                        Create table information(
+                        information_date/time int primary key,
+                        information_host nvarchar(50),
+                        ping int
+                        )
+                   ''' )
+
+        for row in df.itertuples():
+            cursor.execute('''
+                        INSERT INTO information (information_date/time, information_host, ping)
+                        VALUES(, , ,)
+                        ''',
+                        row.information_date/time,
+                        row.information_host,
+                        row.ping
+                        )
+        database.commit()
+
 ipAddress = input("IP Address: ")
 while not Network.is_valid_ip(ipAddress):
     ipAddress = input("IP Address: ")
@@ -87,3 +124,4 @@ network1 = Network(ipAddress)
 
 network1.ping_network()
 network1.write_to_csv("information.csv")
+
