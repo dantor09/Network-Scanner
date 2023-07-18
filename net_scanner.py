@@ -92,8 +92,8 @@ class Network:
         #creates connection object
 
         database_conn = pyodbc.connect(
-                #not tested yet 
-                driver = r"/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.9.so.1.1",
+                #not tested yet
+                driver = r'/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.9.so.1.1'
                 host = "localhost",
                 user = input("Username: "),
                 password = input("Password: ")
