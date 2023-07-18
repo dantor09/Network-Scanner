@@ -91,7 +91,9 @@ class Network:
 
         #creates connection object
 
-        database = pyodbc.connect(
+        database_conn = pyodbc.connect(
+                #not tested yet 
+                driver = r"/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.9.so.1.1",
                 host = "localhost",
                 user = input("Username: "),
                 password = input("Password: ")
@@ -99,13 +101,34 @@ class Network:
 
         #executes SQL statements
 
-        cursor = database.cursor()
+        cursor = database_conn.cursor()
 
         cursor.execute('''
                         Create table information(
                         information_date/time int primary key,
                         information_host nvarchar(50),
-                        ping in
+                        ping int,
+                        information_TCP/19 int,
+                        information_TCP/21 int,
+                        information_TCP/22 int,
+                        information_TCP/23 int,
+                        information_TCP/25 int,
+                        information_TCP/80 int,
+                        information_TCP/110 int,
+                        information_TCP/137 int,
+                        information_TCP/138 int,
+                        information_TCP/139 int,
+                        information_TCP/389 int,
+                        information_TCP/445 int,
+                        information_TCP/902 int,
+                        information_TCP/903 int,
+                        information_TCP/993 int,
+                        information_TCP/995 int,
+                        information_TCP/1080 int,
+                        information_TCP/1433 int,
+                        information_TCP/3606 int,
+                        information_TCP/3389 int,
+                        information_TCP/5900 int
                         )
                    ''' )
 
@@ -118,7 +141,7 @@ class Network:
                         row.information_host,
                         row.ping
                         )
-        database.commit()
+        database_conn.commit()
 
 ipAddress = input("IP Address: ")
 while not Network.is_valid_ip(ipAddress):
