@@ -45,6 +45,28 @@ class Network:
         csv.write(self.csvRows)
         csv.close()
 
+    def test_tcp(self, ip):
+
+        for index, port in enumerate(self.ports):
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(0.002) 
+            result = sock.connect_ex((str(ip),port))
+        
+            # SUCCESSFU
+            if result == 0:
+                print ("Port: " + str(port) + " is open on " + str(ip))
+                self.csvRows += "Open"
+            else:
+                print ("Port: " + str(port) + " is closed on " + str(ip))
+                self.csvRows += "Closed"
+            sock.close()
+        
+            if index != 23:
+                self.csvRows +=","
+            elif index == 23:
+                self.csvRows +="\n"
+
+
     def ping_network(self):       
         self.csvRows = ""
 
@@ -66,26 +88,8 @@ class Network:
                 pinged = "no"
             
             self.csvRows += pinged + ","
-
-            for index, port in enumerate(self.ports):
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.settimeout(0.002) 
-                result = sock.connect_ex((str(ip),port))
-        
-                # SUCCESSFU
-                if result == 0:
-                    print ("Port: " + str(port) + " is open on " + str(ip))
-                    self.csvRows += "Open"
-                else:
-                    print ("Port: " + str(port) + " is closed on " + str(ip))
-                    self.csvRows += "Closed"
-                sock.close()
-        
-                if index != 23:
-                    self.csvRows +=","
-                elif index == 23:
-                    self.csvRows +="\n"
-
+            
+            self.test_tcp(ip)
 
 
     def connection(self):
