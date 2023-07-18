@@ -19,6 +19,7 @@ class Network:
         self.csvColumnsExist = False
         self.ports = [19,21,22,23,25,80,110,137,138,139,143,179,389,43,445,902,903,993,995,1080,1433,3306,3389,5900]
         self.fileName = "information.csv"
+    
     @staticmethod
     def is_valid_ip(ipAddress):
         valid = []
@@ -33,12 +34,15 @@ class Network:
     def write_to_csv(self, fileName):
         
         self.fileName = fileName
-        csv = open(self.fileName, "a")
-
-        if self.csvColumnsExist == False:
+        csv = open(self.fileName, "w")
+        
+        fileSize = os.path.getsize("./" + self.fileName)
+       
+        # do not append the columns if they already exist 
+        if self.csvColumnsExist == False and fileSize == 0:
             csv.write(self.csvColumns)
+            self.csvColumnsExist = True
         csv.write(self.csvRows)
-
         csv.close()
 
     def ping_network(self):       
@@ -87,8 +91,7 @@ class Network:
     def connection(self):
         data = pd.read_csv(self.fileName, index_col=False, sep=",")
         df = pd.DataFrame(data)
-        print(df)
-
+        
         #creates connection object
 
         database = pyodbc.connect(
