@@ -105,7 +105,7 @@ class Network:
                         Create table information(
                         information_date/time int primary key,
                         information_host nvarchar(50),
-                        ping int
+                        ping in
                         )
                    ''' )
 
