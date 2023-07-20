@@ -14,10 +14,10 @@ class Network:
     def __init__(self, ipAddress):
         self.ipAddress = ipaddress.ip_interface(ipAddress)
         self.ipNetwork = ipaddress.ip_network(str(self.ipAddress.network))
-        self.csvColumns = "Date/Time,Host,Ping,TCP/19,TCP/21,TCP/22,TCP/23,TCP/25,TCP/80,TCP/110,TCP/137,TCP/138,TCP/139,TCP/389,TCP/445,TCP/902,TCP/903,TCP/993,TCP/995,TCP/1080,TCP/1433,TCP/3606,TCP/3389,TCP/5900\n"
+        self.csvColumns = "Date/Time,Host,Ping,TCP/19,TCP/21,TCP/22,TCP/23,TCP/25,TCP/80,TCP/110,TCP/137,TCP/138,TCP/139,TCP/143,TCP/179,TCP/389,TCP/443,TCP/445,TCP/902,TCP/903,TCP/993,TCP/995,TCP/1080,TCP/1433,TCP/3606,TCP/3389,TCP/5900\n"
         self.csvRows = ""
         self.csvColumnsExist = False
-        self.ports = [19,21,22,23,25,80,110,137,138,139,143,179,389,43,445,902,903,993,995,1080,1433,3306,3389,5900]
+        self.ports = [19,21,22,23,25,80,110,137,138,139,143,179,389,443,445,902,903,993,995,1080,1433,3306,3389,5900]
         self.fileName = "information.csv"
     
     @staticmethod
@@ -93,14 +93,14 @@ class Network:
 
 
     def connection(self):
-        data = pd.read_csv(self.fileName, index_col=False, sep=",")
+        data = pd.read_csv(self.fileName,  sep=",")
         df = pd.DataFrame(data)
         
         #creates connection object
 
         database_conn = pyodbc.connect(
                 #not tested yet
-                driver = r'/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.9.so.1.1'
+                driver = r'/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.9.so.1.1',
                 host = "localhost",
                 user = input("Username: "),
                 password = input("Password: ")
