@@ -26,15 +26,105 @@ class CSV:
 
 class Network:
     
+    groupSize = {128:[25,17,9,1],64:[26,18,10,2],32:[27,19,11,3],16:[28,20,12,4],8:[29,21,13,5],4:[30,22,14,6],2:[31,23,15,7],1:[32,24,16,8]}
+    
     def __init__(self, ipAddress, fileName):
         self.csv = CSV(fileName)
-        print("This is the CSV: ")
-        print(self.csv)
-
+        self.firstOctet, self.secondOctet, self.thirdOctet, self.fourthOctet,self.CIDR = self.parse_ip(ipAddress)
+        
         self.ipAddress = ipaddress.ip_interface(ipAddress)
         self.ipNetwork = ipaddress.ip_network(str(self.ipAddress.network))
         self.ports = [19,21,22,23,25,80,110,137,138,139,143,179,389,443,445,902,903,993,995,1080,1433,3306,3389,5900]
-         
+    
+    def parse_ip(self,ipAddress):
+        octetList = []
+       
+        print("octetList type: " + str(type(octetList)))
+        network = ipAddress.split("/")[0]
+        CIDR = ipAddress.split("/")[1]
+        netOctet1 = int(network.split(".")[0])
+        netOctet2 = int(network.split(".")[1])
+        netOctet3 = int(network.split(".")[2])
+        netOctet4 = int(network.split(".")[3])
+        octetList.append(netOctet1)
+        octetList.append(netOctet2)
+        octetList.append(netOctet3)
+        octetList.append(netOctet4)
+        octetList.append(CIDR)
+
+        print("octetList[0] type: " + str(type(octetList[0])))
+        return octetList
+
+    def get_ip_address(self):
+        return str(self.firstOctet) + "." + str(self.secondOctet) + "." + str(self.thirdOctet) + "." + str(self.fourthOctet) + "/" + str(self.CIDR)
+    
+    def get_octet_block(self):
+
+        octet = 0
+        CIDR = int(self.CIDR)
+        print(type(self.CIDR))
+        if CIDR in range(1,9):
+            octet = self.firstOctet
+
+        if CIDR in range(9,17):
+            octet = self.secondOctet
+
+        if CIDR in range(17,25):
+            octet = self.thirdOctet
+
+        if CIDR in range(25,33):
+            octet = self.fourthOctet
+
+        print("The CIDR: " + str(self.CIDR) + " belongs in octet number: " + str(octet))
+        return octet
+
+    def get_network(self):
+        
+        octets = []
+        firstOctetCopy = self.firstOctet
+        secondOctetCopy = self.secondOctet
+        thirdOctetCopy = self.thirdOctet
+        fourthOctetCopy = self.fourthOctet
+
+        octets.append(firstOctetCopy)
+        octets.append(secondOctetCopy)
+        octets.append(thirdOctetCopy)
+        octets.append(fourthOctetCopy)
+
+
+        networkSize = 0
+        
+        for key, values in Network.groupSize.items():
+            if int(self.CIDR) in values:
+                networkSize = key
+        
+        
+        print("this is the network size: " + str(networkSize))
+        startingNetworkIP = 0;
+        previousStartingNetworkIP = startingNetworkIP
+        octetValue = self.get_octet_block()
+        
+        octet = octets.index(octetValue)
+    
+        print("Before the loop")
+        while startingNetworkIP <= octetValue:
+            previousStartingNetworkIP = startingNetworkIP
+            startingNetworkIP += networkSize
+
+
+        print("after the loop")
+        octets[octet] = previousStartingNetworkIP
+        
+        octet += 1
+        while octet < len(octets):
+            octets[octet] = 0
+            octet += 1
+        print("This is the previous network ip: " + str(previousStartingNetworkIP)) 
+        
+        return str(octets[0]) + "." + str(octets[1]) + "." + str(octets[2]) + "." + str(octets[3])
+
+
+        
     @staticmethod
     def is_valid_ip(ipAddress):
         valid = []
@@ -154,7 +244,9 @@ while not Network.is_valid_ip(ipAddress):
 
 network1 = Network(ipAddress,"network1.csv")
 
-network1.ping_network()
+print(network1.get_network())
+#print(network1.get_ip_address())
+#network1.ping_network()
 
 
 
