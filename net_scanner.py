@@ -28,7 +28,7 @@ class Network:
     
     groupSize = {128:[25,17,9,1],64:[26,18,10,2],32:[27,19,11,3],16:[28,20,12,4],8:[29,21,13,5],4:[30,22,14,6],2:[31,23,15,7],1:[32,24,16,8]}
     
-    def __init__(self, ipAddress, fileName):
+    def __init__(self, ipAddress, fileName="default.csv"):
         self.csv = CSV(fileName)
         self.firstOctet, self.secondOctet, self.thirdOctet, self.fourthOctet,self.CIDR = self.parse_ip(ipAddress)
         
@@ -39,7 +39,7 @@ class Network:
     def parse_ip(self,ipAddress):
         octetList = []
        
-        print("octetList type: " + str(type(octetList)))
+        #print("octetList type: " + str(type(octetList)))
         network = ipAddress.split("/")[0]
         CIDR = ipAddress.split("/")[1]
         netOctet1 = int(network.split(".")[0])
@@ -52,7 +52,7 @@ class Network:
         octetList.append(netOctet4)
         octetList.append(CIDR)
 
-        print("octetList[0] type: " + str(type(octetList[0])))
+        #print("octetList[0] type: " + str(type(octetList[0])))
         return octetList
 
     def get_ip_address(self):
@@ -62,7 +62,7 @@ class Network:
 
         octet = 0
         CIDR = int(self.CIDR)
-        print(type(self.CIDR))
+        #print(type(self.CIDR))
         if CIDR in range(1,9):
             octet = self.firstOctet
 
@@ -75,7 +75,7 @@ class Network:
         if CIDR in range(25,33):
             octet = self.fourthOctet
 
-        print("The CIDR: " + str(self.CIDR) + " belongs in octet number: " + str(octet))
+        #print("The CIDR: " + str(self.CIDR) + " belongs in octet number: " + str(octet))
         return octet
 
     def get_network(self):
@@ -99,27 +99,27 @@ class Network:
                 networkSize = key
         
         
-        print("this is the network size: " + str(networkSize))
+        #print("this is the network size: " + str(networkSize))
         startingNetworkIP = 0;
         previousStartingNetworkIP = startingNetworkIP
         octetValue = self.get_octet_block()
         
         octet = octets.index(octetValue)
     
-        print("Before the loop")
+        #print("Before the loop")
         while startingNetworkIP <= octetValue:
             previousStartingNetworkIP = startingNetworkIP
             startingNetworkIP += networkSize
 
 
-        print("after the loop")
+        #print("after the loop")
         octets[octet] = previousStartingNetworkIP
         
         octet += 1
         while octet < len(octets):
             octets[octet] = 0
             octet += 1
-        print("This is the previous network ip: " + str(previousStartingNetworkIP)) 
+        #print("This is the previous network ip: " + str(previousStartingNetworkIP)) 
         
         return str(octets[0]) + "." + str(octets[1]) + "." + str(octets[2]) + "." + str(octets[3])
 
@@ -238,15 +238,17 @@ class Network:
                         )
         database_conn.commit()
 
-ipAddress = input("IP Address: ")
-while not Network.is_valid_ip(ipAddress):
+if __name__ == "__main__":
+
     ipAddress = input("IP Address: ")
+    while not Network.is_valid_ip(ipAddress):
+        ipAddress = input("IP Address: ")
 
-network1 = Network(ipAddress,"network1.csv")
+    network1 = Network(ipAddress,"network1.csv")
 
-print(network1.get_network())
-#print(network1.get_ip_address())
-#network1.ping_network()
+    print(network1.get_network())
+    #print(network1.get_ip_address())
+    #network1.ping_network()
 
 
 
