@@ -17,5 +17,31 @@ class TestNetScanner(unittest.TestCase):
             network = networkTest.get_network()
             self.assertEqual(network,ipNetwork[index])
 
+    def test_get_octet_block(self):
+        CIDR1 = [1,2,3,4,5,6,7,8]
+        CIDR2 = [9,10,11,12,13,14,15,16]
+        CIDR3 = [17,18,19,20,21,22,23,24]
+        CIDR4 = [25,26,27,28,29,30,31,32]
+
+        for CIDR in CIDR1:
+            networkTest = Network("172.27.131.1/" + str(CIDR))
+            block = networkTest._get_octet_block()
+            self.assertEqual(block,0)
+
+        for CIDR in CIDR2:
+            networkTest = Network("172.27.131.1/" + str(CIDR))
+            block = networkTest._get_octet_block()
+            self.assertEqual(block,1)
+
+        for CIDR in CIDR3:
+            networkTest = Network("172.27.131.1/" + str(CIDR))
+            block = networkTest._get_octet_block()
+            self.assertEqual(block,2)
+
+        for CIDR in CIDR4:
+            networkTest = Network("172.27.131.1/" + str(CIDR))
+            block = networkTest._get_octet_block()
+            self.assertEqual(block,3)
+
 if __name__ == '__main__':
     unittest.main()
