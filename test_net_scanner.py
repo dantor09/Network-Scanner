@@ -2,11 +2,9 @@ import unittest
 from net_scanner import Network
 
 
-# inheriting from test case will give you a lot of the functionality 
-# that comse with test case
 class TestNetScanner(unittest.TestCase):
 
-    # if function name does not start with test, the test will nto run correctly
+    # if function name does not start with test, the test will not run correctly
     def test_network(self):
 
         ipCIDR = ["221.8.159.37/28","96.179.53.57/23","47.16.101.151/17","71.42.102.58/20","2.217.42.73/19","82.251.71.209/15","52.124.252.192/13","158.241.19.144/23","108.216.184.244/28","23.57.46.204/8"]
@@ -25,23 +23,33 @@ class TestNetScanner(unittest.TestCase):
 
         for CIDR in CIDR1:
             networkTest = Network("172.27.131.1/" + str(CIDR))
-            block = networkTest._get_octet_block()
+            block = networkTest.get_octet_block()
             self.assertEqual(block,0)
 
         for CIDR in CIDR2:
             networkTest = Network("172.27.131.1/" + str(CIDR))
-            block = networkTest._get_octet_block()
+            block = networkTest.get_octet_block()
             self.assertEqual(block,1)
 
         for CIDR in CIDR3:
             networkTest = Network("172.27.131.1/" + str(CIDR))
-            block = networkTest._get_octet_block()
+            block = networkTest.get_octet_block()
             self.assertEqual(block,2)
 
         for CIDR in CIDR4:
             networkTest = Network("172.27.131.1/" + str(CIDR))
-            block = networkTest._get_octet_block()
+            block = networkTest.get_octet_block()
             self.assertEqual(block,3)
+
+    def test_get_broadcast(self):
+
+        ipCIDR = ["221.8.159.37/28","96.179.53.57/23","47.16.101.151/17","71.42.102.58/20","2.217.42.73/19","82.251.71.209/15","52.124.252.192/13","158.241.19.144/23","108.216.184.244/28","23.57.46.204/8"]
+        ipBroadcast = ["221.8.159.47","96.179.53.255","47.16.127.255","71.42.111.255","2.217.63.255","82.251.255.255","52.127.255.255","158.241.19.255","108.216.184.255","23.255.255.255"]
+
+        for index, ip in enumerate(ipCIDR):
+            networkTest = Network(ip)
+            broadcast = networkTest.get_broadcast()
+            self.assertEqual(broadcast,ipBroadcast[index])
 
 if __name__ == '__main__':
     unittest.main()
