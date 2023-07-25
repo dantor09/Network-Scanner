@@ -270,12 +270,16 @@ class Network:
         cnx.close()
 
 if __name__ == "__main__":
+    
+    if len(sys.argv) > 1:
+        ipCIDR = sys.argv[1]
+    else:
+        ipCIDR = input("Enter IP: ")
 
-    ipAddress = input("IP Address: ")
-    while not Network.is_valid_ip(ipAddress):
-        ipAddress = input("IP Address: ")
+    while not Network.is_valid_ip(ipCIDR):
+        ipCIDR = input("Enter IP: ")
 
-    network1 = Network(ipAddress,"network1.csv")
+    network1 = Network(ipCIDR,"network1.csv")
 
     network1.ping_network()
     network1.connection()
