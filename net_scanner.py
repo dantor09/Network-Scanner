@@ -5,7 +5,7 @@ import datetime
 import csv 
 import socket
 import pandas as pd 
-#import pyodbc 
+import mysql.connector
 
 class DatabaseConnection:
     pass
@@ -15,7 +15,7 @@ class CSV:
         self.df = pd.DataFrame(columns=["Date/Time","Host","Ping","TCP/19","TCP/21","TCP/22","TCP/23",
                                         "TCP/25","TCP/80","TCP/110","TCP/137","TCP/138","TCP/139","TCP/143",
                                         "TCP/179","TCP/389","TCP/443","TCP/445","TCP/902","TCP/903",
-                                        "TCP/993","TCP/995","TCP/1080","TCP/1433","TCP/3606","TCP/3389","TCP/5900"])
+                                        "TCP/993","TCP/995","TCP/1080","TCP/1433","TCP/3306","TCP/3389","TCP/5900"])
         self.fileName = fileName
         self.csvRows = []
     
@@ -40,6 +40,7 @@ class Network:
     def __init__(self, ipAddress, fileName="default.csv"):
         self.csv = CSV(fileName)
         self.parse_ip(ipAddress)
+        self.fileName = fileName
         self.ipAddress = ipaddress.ip_interface(ipAddress)
         self.ipNetwork = ipaddress.ip_network(str(self.ipAddress.network))
         self.ports = [19,21,22,23,25,80,110,137,138,139,143,179,389,443,445,902,903,993,995,1080,1433,3306,3389,5900]
@@ -217,57 +218,57 @@ class Network:
         
         #creates connection object
 
-        database_conn = pyodbc.connect(
-                #not tested yet
-                driver = r'/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.9.so.1.1',
-                host = "localhost",
-                user = input("Username: "),
-                password = input("Password: ")
-            )
+        cnx = mysql.connector.connect(user="", 
+                                      password="", 
+                                      host="127.0.0.1", 
+                                      database="information")
 
+        
         #executes SQL statements
 
-        cursor = database_conn.cursor()
+        cursor = cnx.cursor()
 
         cursor.execute('''
-                        Create table information(
-                        information_date/time int primary key,
-                        information_host nvarchar(50),
-                        ping int,
-                        information_TCP/19 int,
-                        information_TCP/21 int,
-                        information_TCP/22 int,
-                        information_TCP/23 int,
-                        information_TCP/25 int,
-                        information_TCP/80 int,
-                        information_TCP/110 int,
-                        information_TCP/137 int,
-                        information_TCP/138 int,
-                        information_TCP/139 int,
-                        information_TCP/389 int,
-                        information_TCP/445 int,
-                        information_TCP/902 int,
-                        information_TCP/903 int,
-                        information_TCP/993 int,
-                        information_TCP/995 int,
-                        information_TCP/1080 int,
-                        information_TCP/1433 int,
-                        information_TCP/3606 int,
-                        information_TCP/3389 int,
-                        information_TCP/5900 int
+                        CREATE TABLE IF NOT EXISTS scans(
+                        DateTime datetime,
+                        Host varchar(50),
+                        Ping varchar(50),
+                        TCP19 varchar(10),
+                        TCP21 varchar(10),
+                        TCP22 varchar(10),
+                        TCP23 varchar(10),
+                        TCP25 varchar(10),
+                        TCP80 varchar(10),
+                        TCP110 varchar(10),
+                        TCP137 varchar(10),
+                        TCP138 varchar(10),
+                        TCP139 varchar(10),
+                        TCP143 varchar(10),
+                        TCP179 varchar(10),
+                        TCP389 varchar(10),
+                        TCP443 varchar(10),
+                        TCP445 varchar(10),
+                        TCP902 varchar(10),
+                        TCP903 varchar(10),
+                        TCP993 varchar(10),
+                        TCP995 varchar(10),
+                        TCP1080 varchar(10),
+                        TCP1433 varchar(10),
+                        TCP3306 varchar(10),
+                        TCP3389 varchar(10),
+                        TCP5900 varchar(10)
                         )
                    ''' )
 
-        for row in df.itertuples():
+        for row in df.itertuples(index=False):
             cursor.execute('''
-                        INSERT INTO information (information_date/time, information_host, ping)
-                        VALUES(, , ,)
+                        INSERT INTO scans (DateTime, Host, Ping, TCP19, TCP21, TCP22,TCP23,TCP25,TCP80,TCP110,TCP137,TCP138,TCP139,TCP143,TCP179,TCP389,TCP443,TCP445,TCP902,TCP903,TCP993,TCP995,TCP1080,TCP1433,TCP3306,TCP3389,TCP5900)
+                        VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                         ''',
-                        row.information_date/time,
-                        row.information_host,
-                        row.ping
+                        tuple(row[0:])
                         )
-        database_conn.commit()
+        cnx.commit()
+        cnx.close()
 
 if __name__ == "__main__":
 
@@ -277,12 +278,8 @@ if __name__ == "__main__":
 
     network1 = Network(ipAddress,"network1.csv")
 
-    print(network1.get_network())
-    print(network1.get_broadcast())
-    print(network1.get_ip_range())
-    print(network1.get_network())
-    #network1.ping_network()
-
+    network1.ping_network()
+    network1.connection()
 
 
 
