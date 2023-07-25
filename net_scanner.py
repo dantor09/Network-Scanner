@@ -40,13 +40,13 @@ class Network:
     def __init__(self, ipAddress, fileName="default.csv"):
         self.csv = CSV(fileName)
         self.parse_ip(ipAddress)
+        self.networkSize = self.__get_network_size()
         self.ipAddress = ipaddress.ip_interface(ipAddress)
         self.ipNetwork = ipaddress.ip_network(str(self.ipAddress.network))
         self.ports = [19,21,22,23,25,80,110,137,138,139,143,179,389,443,445,902,903,993,995,1080,1433,3306,3389,5900]
     
     def parse_ip(self,ipAddress):
         self.ipOctets = []
-        #print("octetList type: " + str(type(octetList)))
         self.ip = ipAddress.split("/")[0]
         self.CIDR = int(ipAddress.split("/")[1])
         self.octet1 = int(self.ip.split(".")[0])
@@ -64,10 +64,9 @@ class Network:
         return str(self.ipOctets[0]) + "." + str(self.ipOctets[1]) + "." + str(self.ipOctets[2]) + "." + str(self.ipOctets[3])
     
     def get_octet_block(self):
-
         octetIndex = 0
         CIDR = int(self.CIDR)
-        #print(type(self.CIDR))
+        
         if CIDR in range(1,9):
             octetIndex = 0
         if CIDR in range(9,17):
@@ -89,35 +88,24 @@ class Network:
         return networkSize
     
     def get_network(self):
-        
-        networkSize = self.__get_network_size()
          
-        #print("this is the network size: " + str(networkSize))
         startingNetworkIP = 0
         previousStartingNetworkIP = startingNetworkIP
-        
         octetIndex = self.get_octet_block() 
 
-        #print("Before the loop")
         while startingNetworkIP <= self.ipOctets[octetIndex]:
             previousStartingNetworkIP = startingNetworkIP
-            startingNetworkIP += networkSize
+            startingNetworkIP += self.networkSize
 
-
-        #print("after the loop")
         self.ipOctets[octetIndex] = previousStartingNetworkIP
-        
-        
+ 
         while (octetIndex + 1) < len(self.ipOctets):
             self.ipOctets[octetIndex + 1] = 0
             octetIndex += 1
-        #print("This is the previous network ip: " + str(previousStartingNetworkIP)) 
         
         return self.get_ip_address()
 
     def get_broadcast(self):
-        networkSize = self.__get_network_size()
-
         startingNetworkIP = 0
         previousStartingNetworkIP = startingNetworkIP
         
@@ -125,9 +113,9 @@ class Network:
 
         while startingNetworkIP <= self.ipOctets[octetIndex]:
             previousStartingNetworkIP = startingNetworkIP
-            startingNetworkIP += networkSize
+            startingNetworkIP += self.networkSize
 
-        self.ipOctets[octetIndex] = previousStartingNetworkIP + networkSize - 1
+        self.ipOctets[octetIndex] = previousStartingNetworkIP + self.networkSize - 1
         
         while (octetIndex + 1) < len(self.ipOctets):
             self.ipOctets[octetIndex + 1] = 255
@@ -137,8 +125,6 @@ class Network:
     
     def get_ip_range(self):
 
-        networkSize = self.__get_network_size()
-
         startingNetworkIP = 0
         previousStartingNetworkIP = startingNetworkIP
         
@@ -146,7 +132,7 @@ class Network:
 
         while startingNetworkIP <= self.ipOctets[octetIndex]:
             previousStartingNetworkIP = startingNetworkIP
-            startingNetworkIP += networkSize
+            startingNetworkIP += self.networkSize
 
         self.ipOctets[octetIndex] = previousStartingNetworkIP + 1
         
@@ -158,12 +144,35 @@ class Network:
 
     @staticmethod
     def is_valid_ip(ipAddress):
-        valid = []
-
+    
+        valid = True
+        
         try:
-            valid = ipaddress.ip_interface(ipAddress)
+            ip = ipAddress.split("/")[0]
+            CIDR = int(ipAddress.split("/")[1])
+            octet1 = int(ip.split(".")[0])
+            octet2 = int(ip.split(".")[1])
+            octet3 = int(ip.split(".")[2])
+            octet4 = int(ip.split(".")[3])
         except ValueError:
-            print(ipAddress + " is not valid")
+            print("Invalid IP")
+            valid = False
+        except Exception as e:
+            print("Something went wrong")
+            print(e)
+            valid = False
+        else:
+
+            if CIDR >= 33 or CIDR <= 0:
+                valid = False
+            if octet1 >= 256 or octet1 <= 0:
+                valid = False
+            if octet2 >= 256 or octet2 <= 0:
+                valid = False
+            if octet3 >= 256 or octet3 <= 0:
+                valid = False 
+            if octet4 >= 256 or octet4 <= 0:
+                valid = False
         
         return valid
     
@@ -186,9 +195,7 @@ class Network:
 
     def ping_network(self):       
         self.csv.csvRows = []
-
         for ip in self.ipNetwork:
-            
             startTime = datetime.datetime.now().replace(microsecond=0)
             response = os.system("ping -c 1 -W 5 " + str(ip) + " > /dev/null")
             pinged = "no"
@@ -206,27 +213,20 @@ class Network:
                 pinged = "no"
             
             self.csv.csvRows.append(pinged)
-            
             self.test_tcp(ip)
-
         self.csv.write_to_csv()
 
     def connection(self):
+        
         data = pd.read_csv(self.csv.fileName,  sep=",")
         df = pd.DataFrame(data)
-        
-        #creates connection object
 
         cnx = mysql.connector.connect(user="", 
                                       password="", 
                                       host="127.0.0.1", 
                                       database="information")
 
-        
-        #executes SQL statements
-
         cursor = cnx.cursor()
-
         cursor.execute('''
                         CREATE TABLE IF NOT EXISTS scans(
                         DateTime datetime,
