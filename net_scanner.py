@@ -5,24 +5,26 @@ import datetime
 import csv 
 import socket
 import pandas as pd 
-import pyodbc 
+#import pyodbc 
 
 class DatabaseConnection:
     pass
 
 class CSV:
     def __init__(self,fileName):
-        self.df = pd.DataFrame(columns=["Date/Time","Host","Ping","TCP/19","TCP/21","TCP/22","TCP/23","TCP/25","TCP/80","TCP/110","TCP/137","TCP/138","TCP/139","TCP/143","TCP/179","TCP/389","TCP/443","TCP/445","TCP/902","TCP/903","TCP/993","TCP/995","TCP/1080","TCP/1433","TCP/3606","TCP/3389","TCP/5900"])
+        self.df = pd.DataFrame(columns=["Date/Time","Host","Ping","TCP/19","TCP/21","TCP/22","TCP/23",
+                                        "TCP/25","TCP/80","TCP/110","TCP/137","TCP/138","TCP/139","TCP/143",
+                                        "TCP/179","TCP/389","TCP/443","TCP/445","TCP/902","TCP/903",
+                                        "TCP/993","TCP/995","TCP/1080","TCP/1433","TCP/3606","TCP/3389","TCP/5900"])
         self.fileName = fileName
         self.csvRows = []
     
     def write_to_dataframe(self):
         self.df.loc[len(self.df)] = self.csvRows 
-
         self.csvRows = []
     
     def write_to_csv(self):
-        self.df.to_csv(self.fileName,sep=",",index=False)
+        self.df.to_csv(self.fileName, sep=",", index=False)
 
 class Network:
     
@@ -61,7 +63,7 @@ class Network:
     def get_ip_address(self):
         return str(self.ipOctets[0]) + "." + str(self.ipOctets[1]) + "." + str(self.ipOctets[2]) + "." + str(self.ipOctets[3])
     
-    def _get_octet_block(self):
+    def get_octet_block(self):
 
         octetIndex = 0
         CIDR = int(self.CIDR)
@@ -75,23 +77,26 @@ class Network:
         if CIDR in range(25,33):
             octetIndex = 3
 
-        #print("The CIDR: " + str(self.CIDR) + " belongs in octet number: " + str(octet))
         return octetIndex
 
-    def get_network(self):
-        
+    def __get_network_size(self):
         networkSize = 0
         
         for key, values in Network.groupSize.items():
             if int(self.CIDR) in values:
                 networkSize = key
         
+        return networkSize
+    
+    def get_network(self):
         
+        networkSize = self.__get_network_size()
+         
         #print("this is the network size: " + str(networkSize))
-        startingNetworkIP = 0;
+        startingNetworkIP = 0
         previousStartingNetworkIP = startingNetworkIP
         
-        octetIndex = self._get_octet_block() 
+        octetIndex = self.get_octet_block() 
 
         #print("Before the loop")
         while startingNetworkIP <= self.ipOctets[octetIndex]:
@@ -109,6 +114,47 @@ class Network:
         #print("This is the previous network ip: " + str(previousStartingNetworkIP)) 
         
         return self.get_ip_address()
+
+    def get_broadcast(self):
+        networkSize = self.__get_network_size()
+
+        startingNetworkIP = 0
+        previousStartingNetworkIP = startingNetworkIP
+        
+        octetIndex = self.get_octet_block() 
+
+        while startingNetworkIP <= self.ipOctets[octetIndex]:
+            previousStartingNetworkIP = startingNetworkIP
+            startingNetworkIP += networkSize
+
+        self.ipOctets[octetIndex] = previousStartingNetworkIP + networkSize - 1
+        
+        while (octetIndex + 1) < len(self.ipOctets):
+            self.ipOctets[octetIndex + 1] = 255
+            octetIndex += 1
+        
+        return self.get_ip_address()    
+    
+    def get_ip_range(self):
+
+        networkSize = self.__get_network_size()
+
+        startingNetworkIP = 0
+        previousStartingNetworkIP = startingNetworkIP
+        
+        octetIndex = self.get_octet_block() 
+
+        while startingNetworkIP <= self.ipOctets[octetIndex]:
+            previousStartingNetworkIP = startingNetworkIP
+            startingNetworkIP += networkSize
+
+        self.ipOctets[octetIndex] = previousStartingNetworkIP + 1
+        
+        while (octetIndex + 1) < len(self.ipOctets):
+            self.ipOctets[octetIndex + 1] = 254
+            octetIndex += 1
+        
+        return self.get_ip_address() + " - " + self.get_broadcast()
 
     @staticmethod
     def is_valid_ip(ipAddress):
@@ -232,7 +278,10 @@ if __name__ == "__main__":
     network1 = Network(ipAddress,"network1.csv")
 
     print(network1.get_network())
-    network1.ping_network()
+    print(network1.get_broadcast())
+    print(network1.get_ip_range())
+    print(network1.get_network())
+    #network1.ping_network()
 
 
 
