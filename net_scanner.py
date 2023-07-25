@@ -40,7 +40,6 @@ class Network:
     def __init__(self, ipAddress, fileName="default.csv"):
         self.csv = CSV(fileName)
         self.parse_ip(ipAddress)
-        self.fileName = fileName
         self.ipAddress = ipaddress.ip_interface(ipAddress)
         self.ipNetwork = ipaddress.ip_network(str(self.ipAddress.network))
         self.ports = [19,21,22,23,25,80,110,137,138,139,143,179,389,443,445,902,903,993,995,1080,1433,3306,3389,5900]
@@ -213,7 +212,7 @@ class Network:
         self.csv.write_to_csv()
 
     def connection(self):
-        data = pd.read_csv(self.fileName,  sep=",")
+        data = pd.read_csv(self.csv.fileName,  sep=",")
         df = pd.DataFrame(data)
         
         #creates connection object
