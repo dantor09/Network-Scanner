@@ -5,7 +5,7 @@ import datetime
 import csv 
 import socket
 import pandas as pd 
-import mysql.connector
+#import mysql.connector
 
 class DatabaseConnection:
     pass
@@ -28,23 +28,25 @@ class CSV:
 
 class Network:
     
-    groupSize = {128:[25,17,9,1],
-                 64:[26,18,10,2],
-                 32:[27,19,11,3],
-                 16:[28,20,12,4],
-                 8:[29,21,13,5],
-                 4:[30,22,14,6],
-                 2:[31,23,15,7],
-                 1:[32,24,16,8]}
+    subNetworkSize = {128:[25,17,9,1],
+                      64:[26,18,10,2],
+                      32:[27,19,11,3],
+                      16:[28,20,12,4],
+                      8:[29,21,13,5],
+                      4:[30,22,14,6],
+                      2:[31,23,15,7],
+                      1:[32,24,16,8]}
     
-    def __init__(self, ipAddress, fileName="default.csv"):
+    def __init__(self, ipAddress, fileName="default.csv", dataBaseObject=None):
         self.csv = CSV(fileName)
+        #self.connection = dataBaseObject
+        #print("This is the database object" + str(type(self.connection)))
         self.parse_ip(ipAddress)
         self.networkSize = self.__get_network_size()
         self.ipAddress = ipaddress.ip_interface(ipAddress)
         self.ipNetwork = ipaddress.ip_network(str(self.ipAddress.network))
         self.ports = [19,21,22,23,25,80,110,137,138,139,143,179,389,443,445,902,903,993,995,1080,1433,3306,3389,5900]
-    
+
     def parse_ip(self,ipAddress):
         self.ipOctets = []
         self.ip = ipAddress.split("/")[0]
@@ -59,11 +61,11 @@ class Network:
         self.ipOctets.append(self.octet3)
         self.ipOctets.append(self.octet4)
         self.ipOctets.append(self.CIDR)
-
+    
     def get_ip_address(self):
         return str(self.ipOctets[0]) + "." + str(self.ipOctets[1]) + "." + str(self.ipOctets[2]) + "." + str(self.ipOctets[3])
-    
-    def get_octet_block(self):
+        
+    def get_octet_index(self):
         octetIndex = 0
         CIDR = int(self.CIDR)
         
@@ -81,7 +83,7 @@ class Network:
     def __get_network_size(self):
         networkSize = 0
         
-        for key, values in Network.groupSize.items():
+        for key, values in Network.subNetworkSize.items():
             if int(self.CIDR) in values:
                 networkSize = key
         
@@ -89,16 +91,18 @@ class Network:
     
     def get_network(self):
          
-        startingNetworkIP = 0
-        previousStartingNetworkIP = startingNetworkIP
-        octetIndex = self.get_octet_block() 
+        previousSubNetworkIP, currentSubNetworkIP = 0, 0
+        octetIndex = self.get_octet_index() 
 
-        while startingNetworkIP <= self.ipOctets[octetIndex]:
-            previousStartingNetworkIP = startingNetworkIP
-            startingNetworkIP += self.networkSize
+        ''' Find what subnetwork the ip portion of the IP address is in'''
+        while currentSubNetworkIP <= self.ipOctets[octetIndex]:
+            previousSubNetworkIP = currentSubNetworkIP
+            currentSubNetworkIP += self.networkSize
 
-        self.ipOctets[octetIndex] = previousStartingNetworkIP
+        ''' Set the network portion of the IP address to the subnetwork'''
+        self.ipOctets[octetIndex] = previousSubNetworkIP
  
+        ''' Set the rest of the octets to 0'''
         while (octetIndex + 1) < len(self.ipOctets):
             self.ipOctets[octetIndex + 1] = 0
             octetIndex += 1
@@ -106,16 +110,16 @@ class Network:
         return self.get_ip_address()
 
     def get_broadcast(self):
-        startingNetworkIP = 0
-        previousStartingNetworkIP = startingNetworkIP
+        currentSubNetworkIP = 0
+        previousSubNetworkIP = currentSubNetworkIP
         
-        octetIndex = self.get_octet_block() 
+        octetIndex = self.get_octet_index() 
 
-        while startingNetworkIP <= self.ipOctets[octetIndex]:
-            previousStartingNetworkIP = startingNetworkIP
-            startingNetworkIP += self.networkSize
+        while currentSubNetworkIP <= self.ipOctets[octetIndex]:
+            previousSubNetworkIP = currentSubNetworkIP
+            currentSubNetworkIP += self.networkSize
 
-        self.ipOctets[octetIndex] = previousStartingNetworkIP + self.networkSize - 1
+        self.ipOctets[octetIndex] = previousSubNetworkIP + self.networkSize - 1
         
         while (octetIndex + 1) < len(self.ipOctets):
             self.ipOctets[octetIndex + 1] = 255
@@ -123,18 +127,45 @@ class Network:
         
         return self.get_ip_address()    
     
+    def produce_ip_range(self):
+        
+        networkCapacity = 2**(32 - self.CIDR)
+        print("This is the networkCapacity: " + str(networkCapacity) + " for a CIDR of " + str(self.CIDR))
+
+        self.get_network()
+        octetIndex = self.get_octet_index() + 1
+        previousSubNetworkIP, currentSubNetworkIP = 0, 0 
+
+        while currentSubNetworkIP < self.networkSize:
+            print(self.ipOctets[0:4])
+            self.ipOctets[octetIndex] += 1
+            if self.ipOctets[octetIndex] == 256:
+                self.ipOctets[octetIndex] = 0
+                self.ipOctets[octetIndex - 1] += 1
+                networkCapacity -= 256
+                if networkCapacity <= 0:
+                    break
+                else:
+                    if self.ipOctets[octetIndex - 1] >= 256:
+                        self.ipOctets[octetIndex - 2] += 1
+
+                
+                
+
+
+
     def get_ip_range(self):
 
-        startingNetworkIP = 0
-        previousStartingNetworkIP = startingNetworkIP
+        currentSubNetworkIP = 0
+        previousSubNetworkIP = currentSubNetworkIP
         
-        octetIndex = self.get_octet_block() 
+        octetIndex = self.get_octet_index() 
 
-        while startingNetworkIP <= self.ipOctets[octetIndex]:
-            previousStartingNetworkIP = startingNetworkIP
-            startingNetworkIP += self.networkSize
+        while currentSubNetworkIP <= self.ipOctets[octetIndex]:
+            previousSubNetworkIP = currentSubNetworkIP
+            currentSubNetworkIP += self.networkSize
 
-        self.ipOctets[octetIndex] = previousStartingNetworkIP + 1
+        self.ipOctets[octetIndex] = previousSubNetworkIP + 1
         
         while (octetIndex + 1) < len(self.ipOctets):
             self.ipOctets[octetIndex + 1] = 254
@@ -165,13 +196,13 @@ class Network:
 
             if CIDR >= 33 or CIDR <= 0:
                 valid = False
-            if octet1 >= 256 or octet1 <= 0:
+            if octet1 >= 256 or octet1 < 0:
                 valid = False
-            if octet2 >= 256 or octet2 <= 0:
+            if octet2 >= 256 or octet2 < 0:
                 valid = False
-            if octet3 >= 256 or octet3 <= 0:
+            if octet3 >= 256 or octet3 < 0:
                 valid = False 
-            if octet4 >= 256 or octet4 <= 0:
+            if octet4 >= 256 or octet4 < 0:
                 valid = False
         
         return valid
@@ -183,7 +214,7 @@ class Network:
             sock.settimeout(0.002) 
             result = sock.connect_ex((str(ip),port))
         
-            # SUCCESSFU
+            # SUCCESSFUL
             if result == 0:
                 print ("Port: " + str(port) + " is open on " + str(ip))
                 self.csv.csvRows.append("Open")
@@ -279,10 +310,12 @@ if __name__ == "__main__":
     while not Network.is_valid_ip(ipCIDR):
         ipCIDR = input("Enter IP: ")
 
+    #database = DatabaseConnection("daniel","93263","information")
     network1 = Network(ipCIDR,"network1.csv")
 
-    network1.ping_network()
-    network1.connection()
+    network1.produce_ip_range()
+    #network1.ping_network()
+    #network1.connection()
 
 
 
