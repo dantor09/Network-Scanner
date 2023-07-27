@@ -7,17 +7,20 @@ import socket
 import pandas as pd 
 import mysql.connector
 
+#import mysql.connector
+import time
 class DatabaseConnection:
-    def __init__(self, username, password):
+    
+    def __init__(self, username, password, host, database):
         self.user = username
         self.password = password
-        self.host ="127.0.0.1"
-        self.database = "information"
+        self.host = host
+        self.database = database
         
     def write_to_database(self, fileName):
         
         try:
-            self.cnx = mysql.connector.connect(
+            cnx = mysql.connector.connect(
                 user = self.user,
                 password = self.password,
                 host = self.host,
@@ -29,8 +32,8 @@ class DatabaseConnection:
         else:
             data = pd.read_csv(fileName, sep = ",")
             df = pd.DataFrame(data)
-            self.cursor = self.cnx.cursor()
-            self.cursor.execute('''
+            cursor = cnx.cursor()
+            cursor.execute('''
                             CREATE TABLE IF NOT EXISTS scans(
                             DateTime datetime,
                             Host varchar(50),
@@ -65,14 +68,14 @@ class DatabaseConnection:
 
 
             for row in df.itertuples(index = False):
-                self.cursor.execute('''
+                cursor.execute('''
                         INSERT INTO scans(DateTime,Host,Ping,TCP19,TCP21,TCP22,TCP23,TCP25,TCP80,TCP110,TCP137,TCP138,TCP139,TCP143,TCP179,TCP389,TCP443,TCP445,TCP902,TCP903,TCP993,TCP995,TCP1080,TCP1433,TCP3306,TCP3389,TCP5900)
                         VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                         ''',
                         tuple(row[0:])
                         )
-            self.cnx.commit()
-            self.cnx.close()
+            cnx.commit()
+            cnx.close()
 
 
 class CSV:
@@ -103,16 +106,19 @@ class Network:
                  1:[32,24,16,8]}
     
     def __init__(self, ipAddress, fileName="default.csv", databaseConnection = None):
+        
+        '''Network class has a database connection object and a csv file writer object
+           they will serve as components of the Network class'''
         self.database = databaseConnection
         self.csv = CSV(fileName)
+        
+
         self.parse_ip(ipAddress)
         self.networkSize = self.__get_network_size()
-        self.fileName = fileName
         self.ports = [19,21,22,23,25,80,110,137,138,139,143,179,389,443,445,902,903,993,995,1080,1433,3306,3389,5900]
     
     def parse_ip(self,ipAddress):
         self.ipOctets = []
-        #print("octetList type: " + str(type(octetList)))
         self.ip = ipAddress.split("/")[0]
         self.CIDR = int(ipAddress.split("/")[1])
         self.octet1 = int(self.ip.split(".")[0])
@@ -162,6 +168,7 @@ class Network:
             previousSubNetworkIP = currentSubNetworkIP
             currentSubNetworkIP += self.networkSize
 
+
         self.ipOctets[octetIndex] = previousSubNetworkIP
 
         while(octetIndex + 1) < len(self.ipOctets):
@@ -194,20 +201,17 @@ class Network:
         octet2 = int((netInteger % (256*256*256)) / (256*256))
         octet3 = int((netInteger % (256*256)) / 256)
         octet4 = int(netInteger % 256)
-    
+        
+        
         return str(octet1) + '.' + str(octet2) + '.' + str(octet3) + '.' + str(octet4)
     
     def get_ip_range(self):
+        
         self.get_network()
         netInteger = (self.ipOctets[0]*256*256*256) + (self.ipOctets[1]*256*256) + (self.ipOctets[2]*256) + self.ipOctets[3]
         start = netInteger
-
-        #    Convert netmask to integer
-        print("This is the value of CIDR: " + str(self.CIDR))
-        maskBits = self.CIDR
-        hosts = 2**(32-maskBits)
-        print("These are the amount of hosts you can have: " + str(hosts))
-        end = netInteger + hosts
+        hosts = 2**(32-self.CIDR)
+        end = netInteger + hosts - 1
 
         return start, end
 
@@ -261,42 +265,80 @@ class Network:
             sock.close()
         self.csv.write_to_dataframe()
     
-    def ping_ip(self, ip):       
+    def ping_ip(self, ip):     
+
+        if type(ip) == int:
+            try:
+                ip = self.decode_ip(ip)
+            except Exception:
+                print(e)
+                print("IP defaulted to 0.0.0.0")
+                ip ="0.0.0.0"
+        
         self.csv.csvRows = []
         
         startTime = datetime.datetime.now().replace(microsecond=0)
-        response = os.system("ping -c 1 -W 5 " + str(self.decode_ip(ip)) + " > /dev/null")
+        response = os.system("ping -c 1 -W 5 " + str(ip) + " > /dev/null")
         pinged = "no"
         self.csv.csvRows.append(str(startTime))
-        self.csv.csvRows.append(str(self.decode_ip(ip)))
+        self.csv.csvRows.append(str(ip))
         
         if response == 0:
-            print("0 Connection accepted from ", str(self.decode_ip(ip)))
+            print("0 Connection accepted from ", str(ip))
             pinged = "yes"
         elif response == 1: 
-            print("1 Timeout from ", str(self.decode_ip(ip)))
+            print("1 Timeout from ", str(ip))
             pinged = "timeout"
         else:
-            print("2 Refused from ", str(self.decode_ip(ip)))
+            print("2 Refused from ", str(ip))
             pinged = "no"
             
         self.csv.csvRows.append(pinged)
-        self.test_tcp(self.decode_ip(ip))
+        self.test_tcp(ip)
         self.csv.write_to_csv() 
     
     def write_to_database(self):
-        self.database.write_to_database(self.csv.fileName)
+        attemptsLeft = 2
+        while attemptsLeft > 0:
+            
+            try:
+                self.database.write_to_database(self.csv.fileName)
+                attemptsLeft = 0
+            except Exception:
+                print("BACK IN EXCEPTION")
+                attemptsLeft -= 1
+                print("Network does not have a database connection")
+                connectToDatabase = input("Connect to a database(y,n)? ")
+                if connectToDatabase == "y":
+                    username = input("Username:")
+                    password = input("Password:")
+                    host = input("Host:")
+                    database = input("Database:")
+
+                    self.database = DatabaseConnection(username,password,host,database)
+                    self.database.write_to_database(self.csv.fileName)
+        
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         ipCIDR = sys.argv[1]
     else:
-        ipCIDR = input("Enter IP: ")
+        ipCIDR = "196.168.1.10/30" #input("Enter IP: ")
     while not Network.is_valid_ip(ipCIDR):
         ipCIDR = input("Enter IP: ")
 
-    DatabaseConnection1 = DatabaseConnection("roselyn", "d2eadf8083")
-    #database = DatabaseConnection("daniel","93263","information")
-    network1 = Network(ipCIDR,"example.csv", DatabaseConnection1)
-    
+    net1 = Network(ipCIDR,"default.csv")
+    start, stop = net1.get_ip_range()
 
+    print("The network address is: " + str(net1.decode_ip(start)))
+    print("The broadcast: " + str(net1.decode_ip(stop)))
+
+    print("My network address from function is: " + str(net1.get_network()))
+    print("This is the broadcast from function: " + str(net1.get_broadcast()))
+    
+    print("This is the ip address you were originally operating: " + str(net1.ip))
+    
+    while start < stop:
+        net1.ping_ip(start)
+        start += 1
+    net1.write_to_database()
