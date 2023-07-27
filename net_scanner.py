@@ -8,23 +8,34 @@ import pandas as pd
 import mysql.connector
 
 class DatabaseConnection:
-    def __init__(self, user, password):
-
-        self.user = user
+    def __init__(self, username, password):
+        self.user = username
         self.password = password
-        self.host = "127.0.0.1"
-        self.database = "scans"
-        self.cnx = mysql.connector.connect
+        self.host ="127.0.0.1"
+        self.database = "information"
+    
 
-    def connection_obj(self):
-        self.cnx =(mysql.connector.connect(self.user, self.password, self.host, self.database))
-        self.data = pd.read_csv(self.csv.fileName, sep = ";")
-        self.df = pd.DataFrame(self.data)
 
         
-    def create_table(self):
-        self.cursor = cnx.cursor()
-        self.cursor.execute('''
+
+        
+    def write_to_database(self, fileName):
+        
+        try:
+            self.cnx = mysql.connector.connect(
+                user = self.user,
+                password = self.password,
+                host = self.host,
+                database = self.database
+                )
+        except Exception as e:
+            print("Something went wrong with the connection to " + str(self.database))
+            print(e)
+        else:
+            data = pd.read_csv(fileName, sep = ",")
+            df = pd.DataFrame(data)
+            self.cursor = self.cnx.cursor()
+            self.cursor.execute('''
                             CREATE TABLE IF NOT EXISTS scans(
                             DateTime datetime,
                             Host varchar(50),
@@ -58,16 +69,15 @@ class DatabaseConnection:
 
 
 
-    def insert_to_table(self):
-        for row in df.itertuples(index = False):
-            cursor.execute('''
-                        INSERT INTO scans(DateTime,Host,Ping,TCP19,TCP21,TCP22,TCP23,TCP25,TCP80,TCP110,TCP137,TCP138,TCP139,TCP143,TCP179,TCP389,TCP443,TCP445,TCP902,TCP903,TCP995,TCP1080,TCP1433,TCP3306,TCP3389,TCP5900)
+            for row in df.itertuples(index = False):
+                self.cursor.execute('''
+                        INSERT INTO scans(DateTime,Host,Ping,TCP19,TCP21,TCP22,TCP23,TCP25,TCP80,TCP110,TCP137,TCP138,TCP139,TCP143,TCP179,TCP389,TCP443,TCP445,TCP902,TCP903,TCP993,TCP995,TCP1080,TCP1433,TCP3306,TCP3389,TCP5900)
                         VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                         ''',
                         tuple(row[0:])
                         )
-        cnx.commit()
-        cnx.close()
+            self.cnx.commit()
+            self.cnx.close()
 
 
 class CSV:
@@ -97,8 +107,12 @@ class Network:
                  2:[31,23,15,7],
                  1:[32,24,16,8]}
     
-    def __init__(self, ipAddress, fileName="default.csv"):
+    def __init__(self, ipAddress, fileName="default.csv", databaseConnection = None):
+        self.database = databaseConnection
+        print("This is the datatype of database variable: " + str(type(self.database)))
         self.csv = CSV(fileName)
+
+        print("This is the datatype of csv variable: " + str(self.csv.fileName))
         self.parse_ip(ipAddress)
         self.fileName = fileName
         self.ipAddress = ipaddress.ip_interface(ipAddress)
@@ -272,8 +286,35 @@ class Network:
                 print ("Port: " + str(port) + " is open on " + str(ip))
                 self.csv.csvRows.append("Open")
             else:
-                df = pd.DataFrame(data)
-        
+                self.csv.csvRows.append("Closed")
+            sock.close()
+        self.csv.write_to_dataframe()
+
+    def ping_network(self):
+        self.csv.csvRows = []
+        for ip in self.ipNetwork:
+            startTime = datetime.datetime.now().replace(microsecond=0)
+            response = os.system("ping -c 1 -W 5 " + str(ip) + " > /dev/null")
+            pinged = "no"
+            self.csv.csvRows.append(str(startTime))
+            self.csv.csvRows.append(str(ip))
+
+            if response == 0:
+                print("0 Connection accepted from ", str(ip))
+                pinged = "yes"
+            elif response == 1:
+                print("1 Timeout from ", str(ip))
+                pinged = "timeout"
+            else:
+                print("2 Refused from ", str(ip))
+                pinged = "no"
+
+            self.csv.csvRows.append(pinged)
+            self.test_tcp(ip)
+        self.csv.write_to_csv()
+
+    def write_to_database(self):
+        self.database.write_to_database(self.csv.fileName)
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
@@ -282,17 +323,19 @@ if __name__ == "__main__":
         ipCIDR = input("Enter IP: ")
     while not Network.is_valid_ip(ipCIDR):
         ipCIDR = input("Enter IP: ")
-    #database = DatabaseConnection("daniel","93263","information")
-    network1 = Network(ipCIDR,"network1.csv")
 
+    DatabaseConnection1 = DatabaseConnection("roselyn", "d2eadf8083")
+    #database = DatabaseConnection("daniel","93263","information")
+    network1 = Network(ipCIDR,"example.csv", DatabaseConnection1)
+    
     #network1.produce_ip_range()
     #network1.ping_network()
     #network1.connection()
+    network1.ping_network()
 
-    DatabaseConnection1 = DatabaseConnection("roselyn", "d2eadf8083")
-    DatabaseConnection1.connection_obj()
-    DatabaseConnection1.create_table()
-    DatabaseConnection1.insert_to_table()
+    network1.write_to_database()
+    #DatabaseConnection1.create_table()
+    #DatabaseConnection1.insert_to_table()
 
 
 
