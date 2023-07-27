@@ -5,10 +5,75 @@ import datetime
 import csv 
 import socket
 import pandas as pd 
-#import mysql.connector
+import mysql.connector
 
 class DatabaseConnection:
-    pass
+    def __init__(self, username, password):
+        self.user = username
+        self.password = password
+        self.host ="127.0.0.1"
+        self.database = "information"
+        
+    def write_to_database(self, fileName):
+        
+        try:
+            self.cnx = mysql.connector.connect(
+                user = self.user,
+                password = self.password,
+                host = self.host,
+                database = self.database
+                )
+        except Exception as e:
+            print("Something went wrong with the connection to " + str(self.database))
+            print(e)
+        else:
+            data = pd.read_csv(fileName, sep = ",")
+            df = pd.DataFrame(data)
+            self.cursor = self.cnx.cursor()
+            self.cursor.execute('''
+                            CREATE TABLE IF NOT EXISTS scans(
+                            DateTime datetime,
+                            Host varchar(50),
+                            Ping varchar(50),
+                            TCP19 varchar(50),
+                            TCP21 varchar(10),
+                            TCP22 varchar(10),
+                            TCP23 varchar(10),
+                            TCP25 varchar(10),
+                            TCP80 varchar(10),
+                            TCP110 varchar(10),
+                            TCP137 varchar(10),
+                            TCP138 varchar(10),
+                            TCP139 varchar(10),
+                            TCP143 varchar(10),
+                            TCP179 varchar(10),
+                            TCP389 varchar(10),
+                            TCP443 varchar(10),
+                            TCP445 varchar(10),
+                            TCP902 varchar(10),
+                            TCP903 varchar(10),
+                            TCP993 varchar(10),
+                            TCP995 varchar(10),
+                            TCP1080 varchar(10),
+                            TCP1433 varchar(10),
+                            TCP3306 varchar(10),
+                            TCP3389 varchar(10),
+                            TCP5900 varchar(10)
+                            )
+                        ''' )
+
+
+
+            for row in df.itertuples(index = False):
+                self.cursor.execute('''
+                        INSERT INTO scans(DateTime,Host,Ping,TCP19,TCP21,TCP22,TCP23,TCP25,TCP80,TCP110,TCP137,TCP138,TCP139,TCP143,TCP179,TCP389,TCP443,TCP445,TCP902,TCP903,TCP993,TCP995,TCP1080,TCP1433,TCP3306,TCP3389,TCP5900)
+                        VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                        ''',
+                        tuple(row[0:])
+                        )
+            self.cnx.commit()
+            self.cnx.close()
+
 
 class CSV:
     def __init__(self,fileName):
@@ -29,22 +94,25 @@ class CSV:
 class Network:
     
     subNetworkSize = {128:[25,17,9,1],
-                      64:[26,18,10,2],
-                      32:[27,19,11,3],
-                      16:[28,20,12,4],
-                      8:[29,21,13,5],
-                      4:[30,22,14,6],
-                      2:[31,23,15,7],
-                      1:[32,24,16,8]}
+                 64:[26,18,10,2],
+                 32:[27,19,11,3],
+                 16:[28,20,12,4],
+                 8:[29,21,13,5],
+                 4:[30,22,14,6],
+                 2:[31,23,15,7],
+                 1:[32,24,16,8]}
     
-    def __init__(self, ipAddress, fileName="default.csv", dataBaseObject=None):
+    def __init__(self, ipAddress, fileName="default.csv", databaseConnection = None):
+        self.database = databaseConnection
         self.csv = CSV(fileName)
         self.parse_ip(ipAddress)
         self.networkSize = self.__get_network_size()
+        self.fileName = fileName
         self.ports = [19,21,22,23,25,80,110,137,138,139,143,179,389,443,445,902,903,993,995,1080,1433,3306,3389,5900]
-
+    
     def parse_ip(self,ipAddress):
         self.ipOctets = []
+        #print("octetList type: " + str(type(octetList)))
         self.ip = ipAddress.split("/")[0]
         self.CIDR = int(ipAddress.split("/")[1])
         self.octet1 = int(self.ip.split(".")[0])
@@ -57,14 +125,15 @@ class Network:
         self.ipOctets.append(self.octet3)
         self.ipOctets.append(self.octet4)
         self.ipOctets.append(self.CIDR)
-    
+
     def get_ip_address(self):
         return str(self.ipOctets[0]) + "." + str(self.ipOctets[1]) + "." + str(self.ipOctets[2]) + "." + str(self.ipOctets[3])
-        
+    
     def get_octet_index(self):
+
         octetIndex = 0
         CIDR = int(self.CIDR)
-        
+        #print(type(self.CIDR))
         if CIDR in range(1,9):
             octetIndex = 0
         if CIDR in range(9,17):
@@ -82,27 +151,23 @@ class Network:
         for key, values in Network.subNetworkSize.items():
             if int(self.CIDR) in values:
                 networkSize = key
-        
         return networkSize
     
     def get_network(self):
-         
+        
         previousSubNetworkIP, currentSubNetworkIP = 0, 0
-        octetIndex = self.get_octet_index() 
+        octetIndex = self.get_octet_index()
 
-        ''' Find what subnetwork the ip portion of the IP address is in'''
         while currentSubNetworkIP <= self.ipOctets[octetIndex]:
             previousSubNetworkIP = currentSubNetworkIP
             currentSubNetworkIP += self.networkSize
 
-        ''' Set the network portion of the IP address to the subnetwork'''
         self.ipOctets[octetIndex] = previousSubNetworkIP
- 
-        ''' Set the rest of the octets to 0'''
-        while (octetIndex + 1) < len(self.ipOctets):
+
+        while(octetIndex + 1) < len(self.ipOctets):
             self.ipOctets[octetIndex + 1] = 0
             octetIndex += 1
-        
+
         return self.get_ip_address()
 
     def get_broadcast(self):
@@ -192,7 +257,6 @@ class Network:
                 print ("Port: " + str(port) + " is open on " + str(ip))
                 self.csv.csvRows.append("Open")
             else:
-                print ("Port: " + str(port) + " is closed on " + str(ip))
                 self.csv.csvRows.append("Closed")
             sock.close()
         self.csv.write_to_dataframe()
@@ -220,74 +284,19 @@ class Network:
         self.test_tcp(self.decode_ip(ip))
         self.csv.write_to_csv() 
     
-    def connection(self):
-        
-        data = pd.read_csv(self.csv.fileName,  sep=",")
-        df = pd.DataFrame(data)
-
-        cnx = mysql.connector.connect(user="", 
-                                      password="", 
-                                      host="127.0.0.1", 
-                                      database="information")
-
-        cursor = cnx.cursor()
-        cursor.execute('''
-                        CREATE TABLE IF NOT EXISTS scans(
-                        DateTime datetime,
-                        Host varchar(50),
-                        Ping varchar(50),
-                        TCP19 varchar(10),
-                        TCP21 varchar(10),
-                        TCP22 varchar(10),
-                        TCP23 varchar(10),
-                        TCP25 varchar(10),
-                        TCP80 varchar(10),
-                        TCP110 varchar(10),
-                        TCP137 varchar(10),
-                        TCP138 varchar(10),
-                        TCP139 varchar(10),
-                        TCP143 varchar(10),
-                        TCP179 varchar(10),
-                        TCP389 varchar(10),
-                        TCP443 varchar(10),
-                        TCP445 varchar(10),
-                        TCP902 varchar(10),
-                        TCP903 varchar(10),
-                        TCP993 varchar(10),
-                        TCP995 varchar(10),
-                        TCP1080 varchar(10),
-                        TCP1433 varchar(10),
-                        TCP3306 varchar(10),
-                        TCP3389 varchar(10),
-                        TCP5900 varchar(10)
-                        )
-                   ''' )
-
-        for row in df.itertuples(index=False):
-            cursor.execute('''
-                        INSERT INTO scans (DateTime, Host, Ping, TCP19, TCP21, TCP22,TCP23,TCP25,TCP80,TCP110,TCP137,TCP138,TCP139,TCP143,TCP179,TCP389,TCP443,TCP445,TCP902,TCP903,TCP993,TCP995,TCP1080,TCP1433,TCP3306,TCP3389,TCP5900)
-                        VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                        ''',
-                        tuple(row[0:])
-                        )
-        cnx.commit()
-        cnx.close()
+    def write_to_database(self):
+        self.database.write_to_database(self.csv.fileName)
 
 if __name__ == "__main__":
-    
     if len(sys.argv) > 1:
         ipCIDR = sys.argv[1]
     else:
         ipCIDR = input("Enter IP: ")
-
     while not Network.is_valid_ip(ipCIDR):
         ipCIDR = input("Enter IP: ")
 
-    network1 = Network("196.168.1.3/30", "example.csv")
+    DatabaseConnection1 = DatabaseConnection("roselyn", "d2eadf8083")
+    #database = DatabaseConnection("daniel","93263","information")
+    network1 = Network(ipCIDR,"example.csv", DatabaseConnection1)
     
-
-
-
-
-
 
