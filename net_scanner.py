@@ -39,12 +39,8 @@ class Network:
     
     def __init__(self, ipAddress, fileName="default.csv", dataBaseObject=None):
         self.csv = CSV(fileName)
-        #self.connection = dataBaseObject
-        #print("This is the database object" + str(type(self.connection)))
         self.parse_ip(ipAddress)
         self.networkSize = self.__get_network_size()
-        self.ipAddress = ipaddress.ip_interface(ipAddress)
-        self.ipNetwork = ipaddress.ip_network(str(self.ipAddress.network))
         self.ports = [19,21,22,23,25,80,110,137,138,139,143,179,389,443,445,902,903,993,995,1080,1433,3306,3389,5900]
 
     def parse_ip(self,ipAddress):
@@ -127,51 +123,28 @@ class Network:
         
         return self.get_ip_address()    
     
-    def produce_ip_range(self):
+    def decode_ip(self, netInteger):
         
-        networkCapacity = 2**(32 - self.CIDR)
-        print("This is the networkCapacity: " + str(networkCapacity) + " for a CIDR of " + str(self.CIDR))
-
-        self.get_network()
-        octetIndex = self.get_octet_index() + 1
-        previousSubNetworkIP, currentSubNetworkIP = 0, 0 
-
-        while currentSubNetworkIP < self.networkSize:
-            print(self.ipOctets[0:4])
-            self.ipOctets[octetIndex] += 1
-            if self.ipOctets[octetIndex] == 256:
-                self.ipOctets[octetIndex] = 0
-                self.ipOctets[octetIndex - 1] += 1
-                networkCapacity -= 256
-                if networkCapacity <= 0:
-                    break
-                else:
-                    if self.ipOctets[octetIndex - 1] >= 256:
-                        self.ipOctets[octetIndex - 2] += 1
-
-                
-                
-
-
-
+        octet1 = int(netInteger / (256*256*256))    
+        octet2 = int((netInteger % (256*256*256)) / (256*256))
+        octet3 = int((netInteger % (256*256)) / 256)
+        octet4 = int(netInteger % 256)
+    
+        return str(octet1) + '.' + str(octet2) + '.' + str(octet3) + '.' + str(octet4)
+    
     def get_ip_range(self):
+        self.get_network()
+        netInteger = (self.ipOctets[0]*256*256*256) + (self.ipOctets[1]*256*256) + (self.ipOctets[2]*256) + self.ipOctets[3]
+        start = netInteger
 
-        currentSubNetworkIP = 0
-        previousSubNetworkIP = currentSubNetworkIP
-        
-        octetIndex = self.get_octet_index() 
+        #    Convert netmask to integer
+        print("This is the value of CIDR: " + str(self.CIDR))
+        maskBits = self.CIDR
+        hosts = 2**(32-maskBits)
+        print("These are the amount of hosts you can have: " + str(hosts))
+        end = netInteger + hosts
 
-        while currentSubNetworkIP <= self.ipOctets[octetIndex]:
-            previousSubNetworkIP = currentSubNetworkIP
-            currentSubNetworkIP += self.networkSize
-
-        self.ipOctets[octetIndex] = previousSubNetworkIP + 1
-        
-        while (octetIndex + 1) < len(self.ipOctets):
-            self.ipOctets[octetIndex + 1] = 254
-            octetIndex += 1
-        
-        return self.get_ip_address() + " - " + self.get_broadcast()
+        return start, end
 
     @staticmethod
     def is_valid_ip(ipAddress):
@@ -223,30 +196,30 @@ class Network:
                 self.csv.csvRows.append("Closed")
             sock.close()
         self.csv.write_to_dataframe()
-
-    def ping_network(self):       
+    
+    def ping_ip(self, ip):       
         self.csv.csvRows = []
-        for ip in self.ipNetwork:
-            startTime = datetime.datetime.now().replace(microsecond=0)
-            response = os.system("ping -c 1 -W 5 " + str(ip) + " > /dev/null")
-            pinged = "no"
-            self.csv.csvRows.append(str(startTime))
-            self.csv.csvRows.append(str(ip))
         
-            if response == 0:
-                print("0 Connection accepted from ", str(ip))
-                pinged = "yes"
-            elif response == 1: 
-                print("1 Timeout from ", str(ip))
-                pinged = "timeout"
-            else:
-                print("2 Refused from ", str(ip))
-                pinged = "no"
+        startTime = datetime.datetime.now().replace(microsecond=0)
+        response = os.system("ping -c 1 -W 5 " + str(self.decode_ip(ip)) + " > /dev/null")
+        pinged = "no"
+        self.csv.csvRows.append(str(startTime))
+        self.csv.csvRows.append(str(self.decode_ip(ip)))
+        
+        if response == 0:
+            print("0 Connection accepted from ", str(self.decode_ip(ip)))
+            pinged = "yes"
+        elif response == 1: 
+            print("1 Timeout from ", str(self.decode_ip(ip)))
+            pinged = "timeout"
+        else:
+            print("2 Refused from ", str(self.decode_ip(ip)))
+            pinged = "no"
             
-            self.csv.csvRows.append(pinged)
-            self.test_tcp(ip)
-        self.csv.write_to_csv()
-
+        self.csv.csvRows.append(pinged)
+        self.test_tcp(self.decode_ip(ip))
+        self.csv.write_to_csv() 
+    
     def connection(self):
         
         data = pd.read_csv(self.csv.fileName,  sep=",")
@@ -310,12 +283,9 @@ if __name__ == "__main__":
     while not Network.is_valid_ip(ipCIDR):
         ipCIDR = input("Enter IP: ")
 
-    #database = DatabaseConnection("daniel","93263","information")
-    network1 = Network(ipCIDR,"network1.csv")
+    network1 = Network("196.168.1.3/30", "example.csv")
+    
 
-    network1.produce_ip_range()
-    #network1.ping_network()
-    #network1.connection()
 
 
 
