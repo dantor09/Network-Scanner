@@ -5,7 +5,7 @@ from net_scanner import Network
 class TestNetScanner(unittest.TestCase):
 
     # if function name does not start with test, the test will not run correctly
-    def test_network(self):
+    def test_get_network(self):
         
         """Test that the network address is correct for a given IP/CIDR"""
         test_data = [
@@ -41,6 +41,26 @@ class TestNetScanner(unittest.TestCase):
                 dummyNetwork = Network("172.27.131.1/" + str(CIDR))
                 octetIndex = dummyNetwork.get_octet_index()
                 self.assertEqual(octetIndex, expected_octet_index)
+    
+    def test_decode_ip(self):
+
+        test_data = [
+        ("3633769907", "216.150.237.179"),
+        ("1758202136", "104.204.9.24"),
+        ("3573630627", "213.1.70.163"),
+        ("3468956643", "206.196.19.227"),
+        ("1511687121", "90.26.131.209"),
+        ("2944128678", "175.123.214.166"),
+        ("3277952363", "195.97.149.107"),
+        ("2525154599", "150.130.205.39"),
+        ("3544356109", "211.66.149.13"),
+        ("2198693254", "131.13.101.134"),
+        ]
+
+        for ipINTEGER, expectedIP in test_data:
+            dummyNetwork = Network(expectedIP + "/1")
+            decodedIP = dummyNetwork.decode_ip(ipINTEGER)
+            self.assertEqual(decodedIP, expectedIP)
 
     def test_get_broadcast(self):
         """Test that the broadcast address is correct for a given IP/CIDR"""

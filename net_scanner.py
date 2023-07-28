@@ -131,7 +131,7 @@ class Network:
         self.ipOctets.append(self.octet3)
         self.ipOctets.append(self.octet4)
         self.ipOctets.append(self.CIDR)
-
+    
     def get_ip_address(self):
         return str(self.ipOctets[0]) + "." + str(self.ipOctets[1]) + "." + str(self.ipOctets[2]) + "." + str(self.ipOctets[3])
     
@@ -155,6 +155,7 @@ class Network:
         return networkSize
     
     def __get_subnetwork_ip(self):
+        
         """Returns the network address of the current IP address"""        
         previousSubNetworkIP, currentSubNetworkIP = 0, 0
         self.octetIndex = self.get_octet_index()
@@ -167,7 +168,7 @@ class Network:
         return previousSubNetworkIP
 
     def get_network(self):
-       
+        '''Tested'''
         self.ipOctets[self.octetIndex] = self.__get_subnetwork_ip()
 
         """Set the remaining octets to 0"""
@@ -188,6 +189,13 @@ class Network:
         return self.get_ip_address()    
     
     def decode_ip(self, netInteger):
+        '''Tested''' 
+        if type(netInteger) == str:
+            try:
+                netInteger = int(netInteger)
+            except Exception as e:
+                print("Unable to turn " + str(netInteger) + " to an integer")
+                print(e)
         
         octet1 = int(netInteger / (256*256*256))    
         octet2 = int((netInteger % (256*256*256)) / (256*256))
