@@ -2,6 +2,8 @@ import ipaddress  #Allows for IP address manipulation
 import sys
 import os 
 import datetime
+from datetime import timezone
+from pytz import timezone
 import csv 
 import socket
 import pandas as pd 
@@ -254,6 +256,7 @@ class Network:
                 print ("Port: " + str(port) + " is open on " + str(ip))
                 self.csv.csvRows.append("Open")
             else:
+                print ("Port: " + str(port) + " is closed on " + str(ip))
                 self.csv.csvRows.append("Closed")
             sock.close()
         self.csv.write_to_dataframe()
@@ -270,7 +273,9 @@ class Network:
         
         self.csv.csvRows = []
         
-        startTime = datetime.datetime.now().replace(microsecond=0)
+        #startTime = datetime.datetime.now().replace(microsecond=0)
+
+        #startTime = datetime.datetime.now(timezone("US/Pacific")).replace(microsecond=0)
         response = os.system("ping -c 1 -W 5 " + str(ip) + " > /dev/null")
         pinged = "no"
         self.csv.csvRows.append(str(startTime))
@@ -288,49 +293,32 @@ class Network:
             
         self.csv.csvRows.append(pinged)
         self.test_tcp(ip)
-        self.csv.write_to_csv() 
-    
-    def write_to_database(self):
-        attemptsLeft = 2
-        while attemptsLeft > 0:
-            
-            try:
-                self.database.write_to_database(self.csv.fileName)
-                attemptsLeft = 0
-            except Exception:
-                attemptsLeft -= 1
-                print("Network does not have a database connection")
-                connectToDatabase = input("Connect to a database(y,n)? ")
-                if connectToDatabase == "y":
-                    username = input("Username:")
-                    password = input("Password:")
-                    host = input("Host:")
-                    database = input("Database:")
-
-                    self.database = DatabaseConnection(username,password,host,database)
-                    self.database.write_to_database(self.csv.fileName)
+   
+    def ping_network(self):
+        self.csv.csvRows = []
+        self.csv.fileName = str(datetime.datetime.now(timezone("US/Pacific")).replace(microsecond=0)) + "_" + self.csv.fileName
+        start, stop = self.get_ip_range()
         
+        while start <= stop:
+            ip = self.decode_ip(start)
+            self.ping_ip(ip)            
+            start += 1
 
+    def write_to_database(self):
+        self.database.write_to_database(self.csv.fileName)
+        
 if __name__ == "__main__":
+    
     if len(sys.argv) > 1:
         ipCIDR = sys.argv[1]
     else:
-        ipCIDR = "172.27.131.39/30"#input("Enter IP: ")
+        ipCIDR = input("Enter IP: ")
     while not Network.is_valid_ip(ipCIDR):
         ipCIDR = input("Enter IP: ")
  
-    databaseConnection1 = DatabaseConnection("","","","")    
-    net1 = Network(ipCIDR,"default.csv", databaseConnection1)
-    start, stop = net1.get_ip_range()
+informationDatabase = DatabaseConnection("","","","")
+network1 = Network(ipCIDR,"network1.csv", informationDatabase)
 
-    print("The network address is: " + str(net1.decode_ip(start)))
-    print("The broadcast: " + str(net1.decode_ip(stop)))
-
-    print("My network address from function is: " + str(net1.get_network()))
-    print("This is the broadcast from function: " + str(net1.get_broadcast()))
+network1.ping_network()
+network1.write_to_database()
     
-    print("This is the ip address you were originally operating: " + str(net1.ip))
-    
-    while start < stop:
-        net1.ping_ip(start)
-        start += 1
