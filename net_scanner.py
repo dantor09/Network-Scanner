@@ -6,9 +6,8 @@ import csv
 import socket
 import pandas as pd 
 import mysql.connector
-
-#import mysql.connector
 import time
+
 class DatabaseConnection:
     
     def __init__(self, username, password, host, database):
@@ -111,7 +110,9 @@ class Network:
            they will serve as components of the Network class'''
         self.database = databaseConnection
         self.csv = CSV(fileName)
-    
+        
+        '''parse_ip takes an ip address with CIDR and sets up the member variables of Network
+           which include ipOctets list which holds each octet and the CIDR in different indexes.'''
         self.parse_ip(ipAddress)
         self.networkSize = self.__get_network_size()
         self.ports = [19,21,22,23,25,80,110,137,138,139,143,179,389,443,445,902,903,993,995,1080,1433,3306,3389,5900]
@@ -289,7 +290,6 @@ class Network:
                 self.database.write_to_database(self.csv.fileName)
                 attemptsLeft = 0
             except Exception:
-                print("BACK IN EXCEPTION")
                 attemptsLeft -= 1
                 print("Network does not have a database connection")
                 connectToDatabase = input("Connect to a database(y,n)? ")
