@@ -107,7 +107,6 @@ class Network:
         self.csv = CSV(fileName)
         self.parse_ip(ipAddress)
         self.networkSize = self.__get_network_size()
-        self.fileName = fileName
         self.ports = [19,21,22,23,25,80,110,137,138,139,143,179,389,443,445,902,903,993,995,1080,1433,3306,3389,5900]
     
     def parse_ip(self,ipAddress):
@@ -260,7 +259,7 @@ class Network:
                 self.csv.csvRows.append("Closed")
             sock.close()
         self.csv.write_to_dataframe()
-    
+
     def ping_ip(self, ip):       
         self.csv.csvRows = []
         
@@ -291,12 +290,27 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         ipCIDR = sys.argv[1]
     else:
-        ipCIDR = input("Enter IP: ")
+        ipCIDR = "172.27.131.39/30"#input("Enter IP: ")
     while not Network.is_valid_ip(ipCIDR):
         ipCIDR = input("Enter IP: ")
-
-    DatabaseConnection1 = DatabaseConnection("roselyn", "d2eadf8083")
-    #database = DatabaseConnection("daniel","93263","information")
+ 
+    DatabaseConnection1 = DatabaseConnection("", "")
     network1 = Network(ipCIDR,"example.csv", DatabaseConnection1)
+
+    start, end = network1.get_ip_range()
+    print("This is the start variable from the function: " + str(start))
+    print("This is the end variable from the function: " + str(end))
     
+    print("Decoded start: " + str(network1.decode_ip(start)))
+    print("Decoded end: " + str(network1.decode_ip(end)))
+
+    while start < end:
+        network1.ping_ip(start)
+        start += 1
+
+    network1.write_to_database()
+
+
+
+
 
