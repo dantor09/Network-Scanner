@@ -111,8 +111,7 @@ class Network:
            they will serve as components of the Network class'''
         self.database = databaseConnection
         self.csv = CSV(fileName)
-        
-
+    
         self.parse_ip(ipAddress)
         self.networkSize = self.__get_network_size()
         self.ports = [19,21,22,23,25,80,110,137,138,139,143,179,389,443,445,902,903,993,995,1080,1433,3306,3389,5900]
@@ -137,61 +136,53 @@ class Network:
     
     def get_octet_index(self):
 
-        octetIndex = 0
+        self.octetIndex = 0
         CIDR = int(self.CIDR)
-        #print(type(self.CIDR))
-        if CIDR in range(1,9):
-            octetIndex = 0
-        if CIDR in range(9,17):
-            octetIndex = 1
-        if CIDR in range(17,25):
-            octetIndex = 2
-        if CIDR in range(25,33):
-            octetIndex = 3
+        
+        if CIDR in range(1,9): self.octetIndex = 0
+        if CIDR in range(9,17): self.octetIndex = 1
+        if CIDR in range(17,25): self.octetIndex = 2
+        if CIDR in range(25,33): self.octetIndex = 3
 
-        return octetIndex
+        return self.octetIndex
 
     def __get_network_size(self):
         networkSize = 0
         
         for key, values in Network.subNetworkSize.items():
-            if int(self.CIDR) in values:
-                networkSize = key
+            if int(self.CIDR) in values: networkSize = key
         return networkSize
     
-    def get_network(self):
-        
+    def __get_subnetwork_ip(self):
+        """Returns the network address of the current IP address"""        
         previousSubNetworkIP, currentSubNetworkIP = 0, 0
-        octetIndex = self.get_octet_index()
+        self.octetIndex = self.get_octet_index()
 
-        while currentSubNetworkIP <= self.ipOctets[octetIndex]:
+        """Get the network address of the current IP address"""
+        while currentSubNetworkIP <= self.ipOctets[self.octetIndex]:
             previousSubNetworkIP = currentSubNetworkIP
             currentSubNetworkIP += self.networkSize
 
+        return previousSubNetworkIP
 
-        self.ipOctets[octetIndex] = previousSubNetworkIP
+    def get_network(self):
+       
+        self.ipOctets[self.octetIndex] = self.__get_subnetwork_ip()
 
-        while(octetIndex + 1) < len(self.ipOctets):
-            self.ipOctets[octetIndex + 1] = 0
-            octetIndex += 1
+        """Set the remaining octets to 0"""
+        while(self.octetIndex + 1) < len(self.ipOctets):
+            self.ipOctets[self.octetIndex + 1] = 0
+            self.octetIndex += 1
 
         return self.get_ip_address()
 
     def get_broadcast(self):
-        currentSubNetworkIP = 0
-        previousSubNetworkIP = currentSubNetworkIP
-        
-        octetIndex = self.get_octet_index() 
 
-        while currentSubNetworkIP <= self.ipOctets[octetIndex]:
-            previousSubNetworkIP = currentSubNetworkIP
-            currentSubNetworkIP += self.networkSize
-
-        self.ipOctets[octetIndex] = previousSubNetworkIP + self.networkSize - 1
+        self.ipOctets[self.octetIndex] = self.__get_subnetwork_ip() + self.networkSize - 1
         
-        while (octetIndex + 1) < len(self.ipOctets):
-            self.ipOctets[octetIndex + 1] = 255
-            octetIndex += 1
+        while (self.octetIndex + 1) < len(self.ipOctets):
+            self.ipOctets[self.octetIndex + 1] = 255
+            self.octetIndex += 1
         
         return self.get_ip_address()    
     
@@ -201,8 +192,7 @@ class Network:
         octet2 = int((netInteger % (256*256*256)) / (256*256))
         octet3 = int((netInteger % (256*256)) / 256)
         octet4 = int(netInteger % 256)
-        
-        
+         
         return str(octet1) + '.' + str(octet2) + '.' + str(octet3) + '.' + str(octet4)
     
     def get_ip_range(self):
@@ -221,8 +211,8 @@ class Network:
         valid = True
         
         try:
-            ip = ipAddress.split("/")[0]
-            CIDR = int(ipAddress.split("/")[1])
+            ip, CIDR = ipAddress.split("/")
+            CIDR = int(CIDR)
             octet1 = int(ip.split(".")[0])
             octet2 = int(ip.split(".")[1])
             octet3 = int(ip.split(".")[2])
@@ -235,17 +225,11 @@ class Network:
             print(e)
             valid = False
         else:
-
-            if CIDR >= 33 or CIDR <= 0:
-                valid = False
-            if octet1 >= 256 or octet1 < 0:
-                valid = False
-            if octet2 >= 256 or octet2 < 0:
-                valid = False
-            if octet3 >= 256 or octet3 < 0:
-                valid = False 
-            if octet4 >= 256 or octet4 < 0:
-                valid = False
+            if CIDR >= 33 or CIDR <= 0: valid = False
+            if octet1 >= 256 or octet1 < 0: valid = False
+            if octet2 >= 256 or octet2 < 0: valid = False
+            if octet3 >= 256 or octet3 < 0: valid = False
+            if octet4 >= 256 or octet4 < 0: valid = False
         
         return valid
     
@@ -327,7 +311,8 @@ if __name__ == "__main__":
     while not Network.is_valid_ip(ipCIDR):
         ipCIDR = input("Enter IP: ")
 
-    net1 = Network(ipCIDR,"default.csv")
+    databaseConnection1 = DatabaseConnection("","","","")    
+    net1 = Network(ipCIDR,"default.csv", databaseConnection1)
     start, stop = net1.get_ip_range()
 
     print("The network address is: " + str(net1.decode_ip(start)))
@@ -341,4 +326,3 @@ if __name__ == "__main__":
     while start < stop:
         net1.ping_ip(start)
         start += 1
-    net1.write_to_database()
