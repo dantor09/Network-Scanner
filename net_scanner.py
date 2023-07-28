@@ -6,18 +6,20 @@ import csv
 import socket
 import pandas as pd 
 import mysql.connector
+import time
 
 class DatabaseConnection:
-    def __init__(self, username, password):
+    
+    def __init__(self, username, password, host, database):
         self.user = username
         self.password = password
-        self.host ="127.0.0.1"
-        self.database = "information"
+        self.host = host
+        self.database = database
         
     def write_to_database(self, fileName):
         
         try:
-            self.cnx = mysql.connector.connect(
+            cnx = mysql.connector.connect(
                 user = self.user,
                 password = self.password,
                 host = self.host,
@@ -29,8 +31,8 @@ class DatabaseConnection:
         else:
             data = pd.read_csv(fileName, sep = ",")
             df = pd.DataFrame(data)
-            self.cursor = self.cnx.cursor()
-            self.cursor.execute('''
+            cursor = cnx.cursor()
+            cursor.execute('''
                             CREATE TABLE IF NOT EXISTS scans(
                             DateTime datetime,
                             Host varchar(50),
@@ -65,14 +67,14 @@ class DatabaseConnection:
 
 
             for row in df.itertuples(index = False):
-                self.cursor.execute('''
+                cursor.execute('''
                         INSERT INTO scans(DateTime,Host,Ping,TCP19,TCP21,TCP22,TCP23,TCP25,TCP80,TCP110,TCP137,TCP138,TCP139,TCP143,TCP179,TCP389,TCP443,TCP445,TCP902,TCP903,TCP993,TCP995,TCP1080,TCP1433,TCP3306,TCP3389,TCP5900)
                         VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                         ''',
                         tuple(row[0:])
                         )
-            self.cnx.commit()
-            self.cnx.close()
+            cnx.commit()
+            cnx.close()
 
 
 class CSV:
@@ -103,15 +105,20 @@ class Network:
                  1:[32,24,16,8]}
     
     def __init__(self, ipAddress, fileName="default.csv", databaseConnection = None):
+        
+        '''Network class has a database connection object and a csv file writer object
+           they will serve as components of the Network class'''
         self.database = databaseConnection
         self.csv = CSV(fileName)
+        
+        '''parse_ip takes an ip address with CIDR and sets up the member variables of Network
+           which include ipOctets list which holds each octet and the CIDR in different indexes.'''
         self.parse_ip(ipAddress)
         self.networkSize = self.__get_network_size()
         self.ports = [19,21,22,23,25,80,110,137,138,139,143,179,389,443,445,902,903,993,995,1080,1433,3306,3389,5900]
     
     def parse_ip(self,ipAddress):
         self.ipOctets = []
-        #print("octetList type: " + str(type(octetList)))
         self.ip = ipAddress.split("/")[0]
         self.CIDR = int(ipAddress.split("/")[1])
         self.octet1 = int(self.ip.split(".")[0])
@@ -130,60 +137,53 @@ class Network:
     
     def get_octet_index(self):
 
-        octetIndex = 0
+        self.octetIndex = 0
         CIDR = int(self.CIDR)
-        #print(type(self.CIDR))
-        if CIDR in range(1,9):
-            octetIndex = 0
-        if CIDR in range(9,17):
-            octetIndex = 1
-        if CIDR in range(17,25):
-            octetIndex = 2
-        if CIDR in range(25,33):
-            octetIndex = 3
+        
+        if CIDR in range(1,9): self.octetIndex = 0
+        if CIDR in range(9,17): self.octetIndex = 1
+        if CIDR in range(17,25): self.octetIndex = 2
+        if CIDR in range(25,33): self.octetIndex = 3
 
-        return octetIndex
+        return self.octetIndex
 
     def __get_network_size(self):
         networkSize = 0
         
         for key, values in Network.subNetworkSize.items():
-            if int(self.CIDR) in values:
-                networkSize = key
+            if int(self.CIDR) in values: networkSize = key
         return networkSize
     
-    def get_network(self):
-        
+    def __get_subnetwork_ip(self):
+        """Returns the network address of the current IP address"""        
         previousSubNetworkIP, currentSubNetworkIP = 0, 0
-        octetIndex = self.get_octet_index()
+        self.octetIndex = self.get_octet_index()
 
-        while currentSubNetworkIP <= self.ipOctets[octetIndex]:
+        """Get the network address of the current IP address"""
+        while currentSubNetworkIP <= self.ipOctets[self.octetIndex]:
             previousSubNetworkIP = currentSubNetworkIP
             currentSubNetworkIP += self.networkSize
 
-        self.ipOctets[octetIndex] = previousSubNetworkIP
+        return previousSubNetworkIP
 
-        while(octetIndex + 1) < len(self.ipOctets):
-            self.ipOctets[octetIndex + 1] = 0
-            octetIndex += 1
+    def get_network(self):
+       
+        self.ipOctets[self.octetIndex] = self.__get_subnetwork_ip()
+
+        """Set the remaining octets to 0"""
+        while(self.octetIndex + 1) < len(self.ipOctets):
+            self.ipOctets[self.octetIndex + 1] = 0
+            self.octetIndex += 1
 
         return self.get_ip_address()
 
     def get_broadcast(self):
-        currentSubNetworkIP = 0
-        previousSubNetworkIP = currentSubNetworkIP
-        
-        octetIndex = self.get_octet_index() 
 
-        while currentSubNetworkIP <= self.ipOctets[octetIndex]:
-            previousSubNetworkIP = currentSubNetworkIP
-            currentSubNetworkIP += self.networkSize
-
-        self.ipOctets[octetIndex] = previousSubNetworkIP + self.networkSize - 1
+        self.ipOctets[self.octetIndex] = self.__get_subnetwork_ip() + self.networkSize - 1
         
-        while (octetIndex + 1) < len(self.ipOctets):
-            self.ipOctets[octetIndex + 1] = 255
-            octetIndex += 1
+        while (self.octetIndex + 1) < len(self.ipOctets):
+            self.ipOctets[self.octetIndex + 1] = 255
+            self.octetIndex += 1
         
         return self.get_ip_address()    
     
@@ -193,20 +193,16 @@ class Network:
         octet2 = int((netInteger % (256*256*256)) / (256*256))
         octet3 = int((netInteger % (256*256)) / 256)
         octet4 = int(netInteger % 256)
-    
+         
         return str(octet1) + '.' + str(octet2) + '.' + str(octet3) + '.' + str(octet4)
     
     def get_ip_range(self):
+        
         self.get_network()
         netInteger = (self.ipOctets[0]*256*256*256) + (self.ipOctets[1]*256*256) + (self.ipOctets[2]*256) + self.ipOctets[3]
         start = netInteger
-
-        #    Convert netmask to integer
-        print("This is the value of CIDR: " + str(self.CIDR))
-        maskBits = self.CIDR
-        hosts = 2**(32-maskBits)
-        print("These are the amount of hosts you can have: " + str(hosts))
-        end = netInteger + hosts
+        hosts = 2**(32-self.CIDR)
+        end = netInteger + hosts - 1
 
         return start, end
 
@@ -216,8 +212,8 @@ class Network:
         valid = True
         
         try:
-            ip = ipAddress.split("/")[0]
-            CIDR = int(ipAddress.split("/")[1])
+            ip, CIDR = ipAddress.split("/")
+            CIDR = int(CIDR)
             octet1 = int(ip.split(".")[0])
             octet2 = int(ip.split(".")[1])
             octet3 = int(ip.split(".")[2])
@@ -230,17 +226,11 @@ class Network:
             print(e)
             valid = False
         else:
-
-            if CIDR >= 33 or CIDR <= 0:
-                valid = False
-            if octet1 >= 256 or octet1 < 0:
-                valid = False
-            if octet2 >= 256 or octet2 < 0:
-                valid = False
-            if octet3 >= 256 or octet3 < 0:
-                valid = False 
-            if octet4 >= 256 or octet4 < 0:
-                valid = False
+            if CIDR >= 33 or CIDR <= 0: valid = False
+            if octet1 >= 256 or octet1 < 0: valid = False
+            if octet2 >= 256 or octet2 < 0: valid = False
+            if octet3 >= 256 or octet3 < 0: valid = False
+            if octet4 >= 256 or octet4 < 0: valid = False
         
         return valid
     
@@ -259,32 +249,59 @@ class Network:
                 self.csv.csvRows.append("Closed")
             sock.close()
         self.csv.write_to_dataframe()
+    
+    def ping_ip(self, ip):     
 
-    def ping_ip(self, ip):       
+        if type(ip) == int:
+            try:
+                ip = self.decode_ip(ip)
+            except Exception:
+                print(e)
+                print("IP defaulted to 0.0.0.0")
+                ip ="0.0.0.0"
+        
         self.csv.csvRows = []
         
         startTime = datetime.datetime.now().replace(microsecond=0)
-        response = os.system("ping -c 1 -W 5 " + str(self.decode_ip(ip)) + " > /dev/null")
+        response = os.system("ping -c 1 -W 5 " + str(ip) + " > /dev/null")
         pinged = "no"
         self.csv.csvRows.append(str(startTime))
-        self.csv.csvRows.append(str(self.decode_ip(ip)))
+        self.csv.csvRows.append(str(ip))
         
         if response == 0:
-            print("0 Connection accepted from ", str(self.decode_ip(ip)))
+            print("0 Connection accepted from ", str(ip))
             pinged = "yes"
         elif response == 1: 
-            print("1 Timeout from ", str(self.decode_ip(ip)))
+            print("1 Timeout from ", str(ip))
             pinged = "timeout"
         else:
-            print("2 Refused from ", str(self.decode_ip(ip)))
+            print("2 Refused from ", str(ip))
             pinged = "no"
             
         self.csv.csvRows.append(pinged)
-        self.test_tcp(self.decode_ip(ip))
+        self.test_tcp(ip)
         self.csv.write_to_csv() 
     
     def write_to_database(self):
-        self.database.write_to_database(self.csv.fileName)
+        attemptsLeft = 2
+        while attemptsLeft > 0:
+            
+            try:
+                self.database.write_to_database(self.csv.fileName)
+                attemptsLeft = 0
+            except Exception:
+                attemptsLeft -= 1
+                print("Network does not have a database connection")
+                connectToDatabase = input("Connect to a database(y,n)? ")
+                if connectToDatabase == "y":
+                    username = input("Username:")
+                    password = input("Password:")
+                    host = input("Host:")
+                    database = input("Database:")
+
+                    self.database = DatabaseConnection(username,password,host,database)
+                    self.database.write_to_database(self.csv.fileName)
+        
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
@@ -294,23 +311,18 @@ if __name__ == "__main__":
     while not Network.is_valid_ip(ipCIDR):
         ipCIDR = input("Enter IP: ")
  
-    DatabaseConnection1 = DatabaseConnection("", "")
-    network1 = Network(ipCIDR,"example.csv", DatabaseConnection1)
+    databaseConnection1 = DatabaseConnection("","","","")    
+    net1 = Network(ipCIDR,"default.csv", databaseConnection1)
+    start, stop = net1.get_ip_range()
 
-    start, end = network1.get_ip_range()
-    print("This is the start variable from the function: " + str(start))
-    print("This is the end variable from the function: " + str(end))
+    print("The network address is: " + str(net1.decode_ip(start)))
+    print("The broadcast: " + str(net1.decode_ip(stop)))
+
+    print("My network address from function is: " + str(net1.get_network()))
+    print("This is the broadcast from function: " + str(net1.get_broadcast()))
     
-    print("Decoded start: " + str(network1.decode_ip(start)))
-    print("Decoded end: " + str(network1.decode_ip(end)))
-
-    while start < end:
-        network1.ping_ip(start)
+    print("This is the ip address you were originally operating: " + str(net1.ip))
+    
+    while start < stop:
+        net1.ping_ip(start)
         start += 1
-
-    network1.write_to_database()
-
-
-
-
-
