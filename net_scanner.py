@@ -1,10 +1,13 @@
 import sys
-import os 
-import datetime
+import os
 import socket
-import pandas as pd 
+import pandas as pd
+#import mysql.connector
 from database_connection import DatabaseConnection
 from csv_handler import CSV
+from zoneinfo import ZoneInfo
+from datetime import datetime, timedelta
+
 
 class Network:
     
@@ -194,9 +197,9 @@ class Network:
                 ip ="0.0.0.0"
         
         self.csv.csvRows = []
-        
-        startTime = datetime.datetime.now().replace(microsecond=0)
-        self.csv.csvRows.append(str(startTime))
+
+        startTime = datetime(2023, 7, 31, 9, tzinfo=ZoneInfo("America/Los_Angeles"))
+        self.csv.csvRows.append(str(startTime.tzname()))
         response = os.system("ping -c 1 -W 5 " + str(ip) + " > /dev/null")
         pinged = "no"
         self.csv.csvRows.append(str(ip))
