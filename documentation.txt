@@ -47,6 +47,10 @@ Pings the given IP address and attempts the tcp connections in the tcp list in N
 ping_network(self): 
 Pings all the IP addresses within the network of the current IP address.
 
+scan_port(self, ip, port):
+This function will test a connection to a target ip. Currently only configured for tcp connections.
+This will return a status 0 if successful. 
+
 write_to_database(self): 
 Writes the contents of the ping and tcp attemps to a database.
 
