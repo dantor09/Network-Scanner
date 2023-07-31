@@ -165,19 +165,25 @@ class Network:
     def test_tcp(self, ip):
 
         for port in self.ports:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(0.002) 
-            result = sock.connect_ex((str(ip),port))
-        
+            result = self.scan_port(ip, port)
+
             # SUCCESSFUL
             if result == 0: self.csv.csvRows.append("Open")
             else: self.csv.csvRows.append("Closed")
 
-            sock.close()
         self.csv.write_to_dataframe()
         
+    def scan_port(self, ip, port):
+        
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(0.002) 
+        result = sock.connect_ex((str(ip), port))
+        sock.close()
+
+        return result
     
     def ping_ip(self, ip):     
+
 
         if type(ip) == int:
             try:
@@ -226,5 +232,9 @@ if __name__ == "__main__":
     db = DatabaseConnection("","","","")
     network = Network(ipCIDR,"network1.csv",db)
     network.ping_network()
+    if network.scan_port(network.ip, 22) == 0:
+        print("Port 22 is open")
+    else: 
+        print("Port 22 is closed")
+
     network.write_to_database()
-        
