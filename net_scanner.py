@@ -3,7 +3,6 @@ import os
 import datetime
 import socket
 import pandas as pd 
-#import mysql.connector
 from database_connection import DatabaseConnection
 from csv_handler import CSV
 
@@ -56,7 +55,7 @@ class Network:
         return str(self.ipOctets[0]) + "." + str(self.ipOctets[1]) + "." + str(self.ipOctets[2]) + "." + str(self.ipOctets[3])
      
     def get_octet_index(self):
-
+        '''Obtain the octet index under which the CIDR lands on'''
         self.octetIndex = 0
         CIDR = int(self.CIDR)
         
@@ -208,7 +207,7 @@ class Network:
         self.csv.csvRows = []
         start, stop = self.get_ip_range()
         
-        while start < stop:
+        while start <= stop:
             ip = self.decode_ip(start)
             self.ping_ip(ip)            
             start += 1
@@ -224,6 +223,8 @@ if __name__ == "__main__":
     while not Network.is_valid_ip(ipCIDR):
         ipCIDR = input("Enter IP: ")
  
-    network = Network(ipCIDR)
+    db = DatabaseConnection("","","","")
+    network = Network(ipCIDR,"network1.csv",db)
     network.ping_network()
+    network.write_to_database()
         

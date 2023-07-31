@@ -114,4 +114,3 @@ class TestNetScanner(unittest.TestCase):
 if __name__ == '__main__':
     unittest.main()
 
-# Test whether or not the ip address is the original once after you call the network function 
