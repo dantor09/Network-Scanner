@@ -57,12 +57,41 @@ class TestNetScanner(unittest.TestCase):
         ("2198693254", "131.13.101.134"),
         ]
 
-        for ipINTEGER, expectedIP in test_data:
+        for ipInteger, expectedIP in test_data:
             dummyNetwork = Network(expectedIP + "/1")
-            decodedIP = dummyNetwork.decode_ip(ipINTEGER)
+            decodedIP = dummyNetwork.decode_ip(ipInteger)
             self.assertEqual(decodedIP, expectedIP)
 
-    def test_get_broadcast(self):
+    def test_get_ip_range(self):
+        """Test that the IP range is correct for a given IP. This should 
+            return the start integer of the network block the ip lands on 
+            and the broadcast(end) integer for the block too"""
+        test_data = ["221.8.159.37/28","96.179.53.57/23",
+                     "47.16.101.151/17","71.42.102.58/20",
+                     "2.217.42.73/19","82.251.71.209/15",
+                     "52.124.252.192/13","158.241.19.144/23",
+                     "108.216.184.244/28","23.57.46.204/8",
+                    ]
+
+        start_stop_data = [("3708329760", "3708329775"),
+                           ("1622356992", "1622357503"),
+                           ("789577728", "789610495"),
+                           ("1193959424", "1193963519"),
+                           ("47783936", "47792127"),
+                           ("1392115712", "1392246783"),
+                           ("880279552", "880803839"),
+                           ("2666598912", "2666599423"),
+                           ("1826142448", "1826142463"),
+                           ("385875968", "402653183")
+                          ]
+        
+        for index, ip_cidr in enumerate(test_data):
+            dummyNetwork = Network(ip_cidr)
+            start, stop = dummyNetwork.get_ip_range()
+            expected_start, expected_stop = start_stop_data[index]
+            self.assertEqual((start, stop),(int(expected_start), int(expected_stop)))
+        
+    def test_get_broadcast_ip(self):
         """Test that the broadcast address is correct for a given IP/CIDR"""
         test_data = [
         ("221.8.159.37/28", "221.8.159.47"),
@@ -79,8 +108,10 @@ class TestNetScanner(unittest.TestCase):
 
         for ip_cidr, expected_broadcast in test_data:
             dummyNetwork = Network(ip_cidr)
-            broadcast = dummyNetwork.get_broadcast()
+            broadcast = dummyNetwork.get_broadcast_ip()
             self.assertEqual(broadcast, expected_broadcast)
 
 if __name__ == '__main__':
     unittest.main()
+
+# Test whether or not the ip address is the original once after you call the network function 
