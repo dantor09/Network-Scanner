@@ -163,7 +163,7 @@ class Network:
         
         return valid
     
-    def test_tcp(self, ip):
+    def __test_tcp(self, ip):
 
         for port in self.ports:
             result = self.scan_port(ip, port)
@@ -207,7 +207,7 @@ class Network:
         else: pinged = "no"
             
         self.csv.csvRows.append(pinged)
-        self.test_tcp(ip)
+        self.__test_tcp(ip)
         self.csv.write_to_csv()
    
     def ping_network(self):
@@ -239,19 +239,25 @@ if __name__ == "__main__":
     '''Parameters to create a Network object are: (IP with CIDR, csv file to write content to, Database connection object) '''
     kernHealthThirdFloor = Network(ipAddress = ipCIDR, fileName="KH3F.csv", databaseConnection=infoDB)
 
+    '''Range is from network to broadcast'''
     startIPInteger, endIPInteger = kernHealthThirdFloor.get_range()
     
-    print("This is the broadcast: " + kernHealthThirdFloor.get_broadcast())
     print("Starting IP for network: " + str(kernHealthThirdFloor.get_network()) + " is " + str(kernHealthThirdFloor.decode_ip(startIPInteger)))
     print("Ending IP for network: " + str(kernHealthThirdFloor.get_network()) + " is " + str(kernHealthThirdFloor.decode_ip(endIPInteger)))
     
+    print("This is the broadcast: " + kernHealthThirdFloor.get_broadcast())
 
     '''ping network function will ping and test tcp ports on the subnetwork the ip is on '''
-    #kernHealthThirdFloor.ping_network()
+    kernHealthThirdFloor.ping_network()
+   
+    print("This is the ip: " + kernHealthThirdFloor.ip)
+    if kernHealthThirdFloor.scan_port(kernHealthThirdFloor.ip, 53) == 0:
+        print("Port 53 is open")
+    else:
+        print("Port 53 is closed")
     
     kernHealthThirdFloor.ping_ip("196.168.1.253")
-
-    
+  
 
 
     
