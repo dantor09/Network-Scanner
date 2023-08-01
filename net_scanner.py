@@ -2,7 +2,6 @@ import sys
 import os
 import socket
 import pandas as pd
-#import mysql.connector
 from database_connection import DatabaseConnection
 from csv_handler import CSV
 from datetime import datetime
@@ -99,7 +98,7 @@ class Network:
 
         return str(self.networkIpOctets[0]) + "." + str(self.networkIpOctets[1]) + "." + str(self.networkIpOctets[2]) + "." + str(self.networkIpOctets[3])
 
-    def get_broadcast_ip(self):
+    def get_broadcast(self):
 
         self.ipOctets[self.octetIndex] = self.__get_subnetwork_ip() + self.networkSize - 1
         
@@ -126,7 +125,7 @@ class Network:
          
         return str(octet1) + '.' + str(octet2) + '.' + str(octet3) + '.' + str(octet4)
     
-    def get_ip_range(self):
+    def get_range(self):
         
         self.get_network()
         ipInteger = (self.networkIpOctets[0]*256*256*256) + (self.networkIpOctets[1]*256*256) + (self.networkIpOctets[2]*256) + self.networkIpOctets[3]
@@ -213,7 +212,7 @@ class Network:
    
     def ping_network(self):
         self.csv.csvRows = []
-        start, stop = self.get_ip_range()
+        start, stop = self.get_range()
         
         while start <= stop:
             ip = self.decode_ip(start)
@@ -231,12 +230,31 @@ if __name__ == "__main__":
     while not Network.is_valid_ip(ipCIDR):
         ipCIDR = input("Enter IP: ")
  
-    db = DatabaseConnection("","","","")
-    network = Network(ipCIDR,"network1.csv",db)
-    network.ping_network()
-    if network.scan_port(network.ip, 22) == 0:
-        print("Port 22 is open")
-    else: 
-        print("Port 22 is closed")
+    
+    '''Create a database connection object. This connection can be tied to any network'''
+    '''object you create'''
 
-    network.write_to_database()
+    infoDB = DatabaseConnection(username="", password="", host="", database="")
+    
+    '''Parameters to create a Network object are: (IP with CIDR, csv file to write content to, Database connection object) '''
+    kernHealthThirdFloor = Network(ipAddress = ipCIDR, fileName="KH3F.csv", databaseConnection=infoDB)
+
+    startIPInteger, endIPInteger = kernHealthThirdFloor.get_range()
+    
+    print("This is the broadcast: " + kernHealthThirdFloor.get_broadcast())
+    print("Starting IP for network: " + str(kernHealthThirdFloor.get_network()) + " is " + str(kernHealthThirdFloor.decode_ip(startIPInteger)))
+    print("Ending IP for network: " + str(kernHealthThirdFloor.get_network()) + " is " + str(kernHealthThirdFloor.decode_ip(endIPInteger)))
+    
+
+    '''ping network function will ping and test tcp ports on the subnetwork the ip is on '''
+    #kernHealthThirdFloor.ping_network()
+    
+    kernHealthThirdFloor.ping_ip("196.168.1.253")
+
+    
+
+
+    
+
+
+

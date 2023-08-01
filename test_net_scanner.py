@@ -60,7 +60,7 @@ def test_decode_ip():
         decodedIP = dummyNetwork.decode_ip(ipInteger)
         assert decodedIP == expectedIP
 
-def test_get_ip_range():
+def test_get_range():
     """Test that the IP range is correct for a given IP. This should 
     return the start integer of the network block the ip lands on 
     and the broadcast(end) integer for the block too"""
@@ -86,13 +86,13 @@ def test_get_ip_range():
 
     for index, ip_cidr in enumerate(test_data):
         dummyNetwork = Network(ip_cidr)
-        start, stop = dummyNetwork.get_ip_range()
+        start, stop = dummyNetwork.get_range()
         expected_start, expected_stop = start_stop_data[index]
         assert (start, stop) == (int(expected_start), int(expected_stop))
 
-    def test_get_broadcast_ip():
-        """Test that the broadcast address is correct for a given IP/CIDR"""
-        test_data = [
+def test_get_broadcast():
+    """Test that the broadcast address is correct for a given IP/CIDR"""
+    test_data = [
                 ("221.8.159.37/28", "221.8.159.47"),
                 ("96.179.53.57/23", "96.179.53.255"),
                 ("47.16.101.151/17", "47.16.127.255"),
@@ -105,9 +105,9 @@ def test_get_ip_range():
                 ("23.57.46.204/8", "23.255.255.255")
                 ]
 
-        for ip_cidr, expected_broadcast in test_data:
-            dummyNetwork = Network(ip_cidr)
-            broadcast = dummyNetwork.get_broadcast_ip()
-            assert broadcast == expected_broadcast
+    for ip_cidr, expected_broadcast in test_data:
+        dummyNetwork = Network(ip_cidr)
+        broadcast = dummyNetwork.get_broadcast()
+        assert broadcast == expected_broadcast
 
 
