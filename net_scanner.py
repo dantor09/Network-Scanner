@@ -5,9 +5,8 @@ import pandas as pd
 #import mysql.connector
 from database_connection import DatabaseConnection
 from csv_handler import CSV
-from zoneinfo import ZoneInfo
-from datetime import datetime, timedelta
-
+from datetime import datetime
+import pytz
 
 class Network:
     
@@ -197,9 +196,9 @@ class Network:
                 ip ="0.0.0.0"
         
         self.csv.csvRows = []
-
-        startTime = datetime(2023, 7, 31, 9, tzinfo=ZoneInfo("America/Los_Angeles"))
-        self.csv.csvRows.append(str(startTime.tzname()))
+        start = datetime.now(pytz.timezone("US/Pacific"))
+        startTime = start.strftime("%Y-%m-%d %H:%M:%S")
+        self.csv.csvRows.append(str(startTime))
         response = os.system("ping -c 1 -W 5 " + str(ip) + " > /dev/null")
         pinged = "no"
         self.csv.csvRows.append(str(ip))
