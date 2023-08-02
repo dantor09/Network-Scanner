@@ -129,9 +129,13 @@ class Network:
         
         self.get_network()
         ipInteger = (self.networkIpOctets[0]*256*256*256) + (self.networkIpOctets[1]*256*256) + (self.networkIpOctets[2]*256) + self.networkIpOctets[3]
-        start = ipInteger
+        
+        '''start is the first ip available to a host on the network'''
+        start = ipInteger + 1 
         hosts = 2**(32-self.CIDR)
-        end = ipInteger + hosts - 1
+
+        '''end is the last ip available to a host on the network '''
+        end = ipInteger + hosts - 2
 
         return start, end
 
@@ -239,11 +243,11 @@ if __name__ == "__main__":
     '''Parameters to create a Network object are: (IP with CIDR, csv file to write content to, Database connection object) '''
     kernHealthThirdFloor = Network(ipAddress = ipCIDR, fileName="KH3F.csv", databaseConnection=infoDB)
 
-    '''Range is from network to broadcast'''
+    '''Range is from (network + 1) to (broadcast - 1)'''
     startIPInteger, endIPInteger = kernHealthThirdFloor.get_range()
     
-    print("Starting IP for network: " + str(kernHealthThirdFloor.get_network()) + " is " + str(kernHealthThirdFloor.decode_ip(startIPInteger)))
-    print("Ending IP for network: " + str(kernHealthThirdFloor.get_network()) + " is " + str(kernHealthThirdFloor.decode_ip(endIPInteger)))
+    print("First assignable IP for network: " + str(kernHealthThirdFloor.get_network()) + " is " + str(kernHealthThirdFloor.decode_ip(startIPInteger)))
+    print("Last assignable IP for network: " + str(kernHealthThirdFloor.get_network()) + " is " + str(kernHealthThirdFloor.decode_ip(endIPInteger)))
     
     print("This is the broadcast: " + kernHealthThirdFloor.get_broadcast())
 
