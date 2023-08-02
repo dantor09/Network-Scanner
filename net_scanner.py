@@ -173,8 +173,8 @@ class Network:
             result = self.scan_port(ip, port)
 
             # SUCCESSFUL
-            if result == 0: self.csv.csvRows.append("Open")
-            else: self.csv.csvRows.append("Closed")
+            if result == 0: self.csv.rows.append("Open")
+            else: self.csv.rows.append("Closed")
 
         self.csv.write_to_dataframe()
         
@@ -198,24 +198,24 @@ class Network:
                 print("IP defaulted to 0.0.0.0")
                 ip ="0.0.0.0"
         
-        self.csv.csvRows = []
+        self.csv.rows = []
         start = datetime.now(pytz.timezone("US/Pacific"))
         startTime = start.strftime("%Y-%m-%d %H:%M:%S")
-        self.csv.csvRows.append(str(startTime))
+        self.csv.rows.append(str(startTime))
         response = os.system("ping -c 1 -W 5 " + str(ip) + " > /dev/null")
         pinged = "no"
-        self.csv.csvRows.append(str(ip))
+        self.csv.rows.append(str(ip))
         
         if response == 0: pinged = "yes"
         elif response == 1: pinged = "timeout"
         else: pinged = "no"
             
-        self.csv.csvRows.append(pinged)
+        self.csv.rows.append(pinged)
         self.__test_tcp(ip)
         self.csv.write_to_csv()
    
     def ping_network(self):
-        self.csv.csvRows = []
+        self.csv.rows = []
         start, stop = self.get_range()
         
         while start <= stop:
