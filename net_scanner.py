@@ -189,30 +189,27 @@ class Network:
     
     def ping_ip(self, ip):     
 
-
         if type(ip) == int:
             try:
                 ip = self.decode_ip(ip)
             except Exception as e:
                 print(e)
-                print("IP defaulted to 0.0.0.0")
-                ip ="0.0.0.0"
+            else: 
+                self.csv.rows = []
+                start = datetime.now(pytz.timezone("US/Pacific"))
+                startTime = start.strftime("%Y-%m-%d %H:%M:%S")
+                self.csv.rows.append(str(startTime))
+                response = os.system("ping -c 1 -W 5 " + str(ip) + " > /dev/null")
+                pinged = "no"
+                self.csv.rows.append(str(ip))
         
-        self.csv.rows = []
-        start = datetime.now(pytz.timezone("US/Pacific"))
-        startTime = start.strftime("%Y-%m-%d %H:%M:%S")
-        self.csv.rows.append(str(startTime))
-        response = os.system("ping -c 1 -W 5 " + str(ip) + " > /dev/null")
-        pinged = "no"
-        self.csv.rows.append(str(ip))
-        
-        if response == 0: pinged = "yes"
-        elif response == 1: pinged = "timeout"
-        else: pinged = "no"
+                if response == 0: pinged = "yes"
+                elif response == 1: pinged = "timeout"
+                else: pinged = "no"
             
-        self.csv.rows.append(pinged)
-        self.__test_tcp(ip)
-        self.csv.write_to_csv()
+                self.csv.rows.append(pinged)
+                self.__test_tcp(ip)
+                self.csv.write_to_csv()
    
     def ping_network(self):
         self.csv.rows = []
@@ -260,7 +257,7 @@ if __name__ == "__main__":
     else:
         print("Port 53 is closed")
     
-    kernHealthThirdFloor.ping_ip("196.168.1.253")
+    kernHealthThirdFloor.ping_ip("196.168.1.1")
   
 
 
