@@ -111,3 +111,22 @@ def test_get_broadcast():
         assert broadcast == expected_broadcast
 
 
+def test_get_ip_address():
+
+    test_data = [
+        ("221.8.159.37/28", "221.8.159.37"),
+        ("96.179.53.57/23", "96.179.53.57"),
+        ("47.16.101.151/17", "47.16.101.151"),
+        ("71.42.102.58/20", "71.42.102.58"),
+        ("2.217.42.73/19", "2.217.42.73"),
+        ("82.251.71.209/15", "82.251.71.209"),
+        ("52.124.252.192/13", "52.124.252.192"),
+        ("158.241.19.144/23", "158.241.19.144"),
+        ("108.216.184.244/28", "108.216.184.244"),
+        ("23.57.46.204/8", "23.57.46.204"),
+        ]
+
+    for ip_cidr, expected_ip in test_data:
+        dummyNetwork = Network(ip_cidr)
+        ipAddress = dummyNetwork.get_ip_address()
+        assert ipAddress == expected_ip
