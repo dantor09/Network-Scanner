@@ -53,7 +53,7 @@ class Network:
 
 
     def get_ip_address(self):
-        return str(self.ipOctets[0]) + "." + str(self.ipOctets[1]) + "." + str(self.ipOctets[2]) + "." + str(self.ipOctets[3])
+        return ".".join([str(octet) for octet in self.ipOctets[0:4]])
      
     def get_octet_index(self):
         '''Obtain the octet index under which the CIDR lands on'''
@@ -95,8 +95,8 @@ class Network:
         while(self.octetIndex + 1) < len(self.networkIpOctets):
             self.networkIpOctets[self.octetIndex + 1] = 0
             self.octetIndex += 1
-
-        return str(self.networkIpOctets[0]) + "." + str(self.networkIpOctets[1]) + "." + str(self.networkIpOctets[2]) + "." + str(self.networkIpOctets[3])
+        
+        return ".".join([str(octet) for octet in self.networkIpOctets[0:4]])
 
     def get_broadcast(self):
 
