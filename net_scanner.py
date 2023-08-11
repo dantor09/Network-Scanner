@@ -5,6 +5,7 @@ import pandas as pd
 import pytz
 from database_connection import DatabaseConnection
 from csv_handler import CSV
+import csv
 from datetime import datetime
 from dotenv import dotenv_values # used to access environment variables
 
@@ -23,16 +24,20 @@ class Network:
         
         '''Network class has a database connection object and a csv file writer object
            they will serve as components of the Network class'''
-        self.database = databaseConnection
-        self.csv = CSV(fileName)
+        self.database = databaseConnection 
+        self.load_ports()
+        self.csv = CSV(fileName, self.ports[0])
         
         '''parse_ip takes an ip address with CIDR and sets up the member variables of Network
            which include ipOctets list which holds each octet and the CIDR in different indexes.'''
         
         self.__parse_ip(ipAddress)   
-        self.networkSize = self.__get_network_size() 
-        self.ports = [19,21,22,23,25,80,110,137,138,139,143,179,389,443,445,902,903,993,995,1080,1433,3306,3389,5900]
-    
+        self.networkSize = self.__get_network_size()
+   
+    def load_ports(self):
+        with open("ports_to_scan.csv") as f:
+            reader=csv.reader(f)
+            self.ports = list(reader)
     def __parse_ip(self,ipAddress):
         self.ipOctets = []
         self.networkIpOctets = []
@@ -170,7 +175,7 @@ class Network:
     
     def __test_tcp(self, ip):
 
-        for port in self.ports:
+        for port in self.ports[0]:
             result = self.scan_port(ip, port)
 
             # SUCCESSFUL
@@ -182,8 +187,8 @@ class Network:
     def scan_port(self, ip, port):
         
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(0.002) 
-        result = sock.connect_ex((str(ip), port))
+        sock.settimeout(0.002)
+        result = sock.connect_ex((str(ip), int(port)))
         sock.close()
 
         return result
@@ -215,15 +220,16 @@ class Network:
             self.ping_ip(ip)            
             start += 1
 
-    def write_to_database(self):
-        self.database.write_to_database(self.csv.fileName)
+    def write_to_database(self, ports):
+        self.database.write_to_database(self.csv.fileName, ports)
         
 if __name__ == "__main__":
     
     #obtain to environment variables as a key value pair in the secrets variable
     secrets = dotenv_values(".env.database")
 
-    if len(sys.argv) > 1: ipCIDR = sys.argv[1]
+    if len(sys.argv) > 1: 
+        ipCIDR = sys.argv[1]
     else: ipCIDR = input("Enter IP: ")
     
     while not Network.is_valid_ip(ipCIDR):
@@ -237,7 +243,10 @@ if __name__ == "__main__":
     
     '''Parameters to create a Network object are: (IP with CIDR, csv file to write content to, Database connection object) '''
     kernHealthThirdFloor = Network(ipAddress = ipCIDR, fileName="KH3F.csv", databaseConnection=infoDB)
-
+    
+    print(kernHealthThirdFloor.ports)
+    kernHealthThirdFloor.ping_network()
+    kernHealthThirdFloor.write_to_database(kernHealthThirdFloor.csv.table_columns[3:])
     '''Range is from (network + 1) to (broadcast - 1)'''
     startIPInteger, endIPInteger = kernHealthThirdFloor.get_range()
     
