@@ -2,10 +2,11 @@ import sys
 import os
 import socket
 import pandas as pd
+import pytz
 from database_connection import DatabaseConnection
 from csv_handler import CSV
 from datetime import datetime
-import pytz
+from dotenv import dotenv_values # used to access environment variables
 
 class Network:
     
@@ -189,28 +190,22 @@ class Network:
     
     def ping_ip(self, ip):     
 
-        if type(ip) == int:
-            try:
-                ip = self.decode_ip(ip)
-            except Exception as e:
-                print(e)
-            else: 
-                self.csv.rows = []
-                start = datetime.now(pytz.timezone("US/Pacific"))
-                startTime = start.strftime("%Y-%m-%d %H:%M:%S")
-                self.csv.rows.append(str(startTime))
-                response = os.system("ping -c 1 -W 5 " + str(ip) + " > /dev/null")
-                pinged = "no"
-                self.csv.rows.append(str(ip))
+        self.csv.rows = []
+        start = datetime.now(pytz.timezone("US/Pacific"))
+        startTime = start.strftime("%Y-%m-%d %H:%M:%S")
+        self.csv.rows.append(str(startTime))
+        response = os.system("ping -c 1 -W 5 " + str(ip) + " > /dev/null")
+        pinged = "no"
+        self.csv.rows.append(str(ip))
         
-                if response == 0: pinged = "yes"
-                elif response == 1: pinged = "timeout"
-                else: pinged = "no"
+        if response == 0: pinged = "yes"
+        elif response == 1: pinged = "timeout"
+        else: pinged = "no"
             
-                self.csv.rows.append(pinged)
-                self.__test_tcp(ip)
-                self.csv.write_to_csv()
-   
+        self.csv.rows.append(pinged)
+        self.__test_tcp(ip)
+        self.csv.write_to_csv()
+    
     def ping_network(self):
         self.csv.rows = []
         start, stop = self.get_range()
@@ -224,6 +219,9 @@ class Network:
         self.database.write_to_database(self.csv.fileName)
         
 if __name__ == "__main__":
+    
+    #obtain to environment variables as a key value pair in the secrets variable
+    secrets = dotenv_values(".env.database")
 
     if len(sys.argv) > 1: ipCIDR = sys.argv[1]
     else: ipCIDR = input("Enter IP: ")
@@ -235,7 +233,7 @@ if __name__ == "__main__":
     '''Create a database connection object. This connection can be tied to any network'''
     '''object you create'''
 
-    infoDB = DatabaseConnection(username="", password="", host="", database="")
+    infoDB = DatabaseConnection(username=secrets["USERNAME"], password=secrets["PASSWORD"], host=secrets["HOST"], database=secrets["DATABASE"])
     
     '''Parameters to create a Network object are: (IP with CIDR, csv file to write content to, Database connection object) '''
     kernHealthThirdFloor = Network(ipAddress = ipCIDR, fileName="KH3F.csv", databaseConnection=infoDB)
@@ -248,16 +246,12 @@ if __name__ == "__main__":
     
     print("This is the broadcast: " + kernHealthThirdFloor.get_broadcast())
 
-    '''ping network function will ping and test tcp ports on the subnetwork the ip is on '''
-    kernHealthThirdFloor.ping_network()
-   
     print("This is the ip: " + kernHealthThirdFloor.ip)
     if kernHealthThirdFloor.scan_port(kernHealthThirdFloor.ip, 53) == 0:
         print("Port 53 is open")
     else:
         print("Port 53 is closed")
     
-    kernHealthThirdFloor.ping_ip("196.168.1.1")
   
 
 
