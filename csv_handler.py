@@ -1,10 +1,14 @@
 import pandas as pd
 class CSV:
-    def __init__(self,fileName):
-        self.df = pd.DataFrame(columns=["Date/Time","Host","Ping","TCP/19","TCP/21","TCP/22","TCP/23",
-                                        "TCP/25","TCP/80","TCP/110","TCP/137","TCP/138","TCP/139","TCP/143",
-                                        "TCP/179","TCP/389","TCP/443","TCP/445","TCP/902","TCP/903",
-                                        "TCP/993","TCP/995","TCP/1080","TCP/1433","TCP/3306","TCP/3389","TCP/5900"])
+    def __init__(self,fileName, ports):
+        self.table_columns = ["Date/Time","Host","Ping"]
+        tcp_data = pd.read_csv("list_of_tcp_ports.csv", sep=",")
+        
+        for _, row in tcp_data.iterrows():
+            if str(row["port"]) in ports:
+                self.table_columns.append("TCP" + str(row["port"]))
+ 
+        self.df = pd.DataFrame(columns=self.table_columns)
         self.fileName = fileName
         self.rows = []
     
