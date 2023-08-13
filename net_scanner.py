@@ -182,8 +182,8 @@ class Network:
             result = self.scan_port(ip, port)
 
             # SUCCESSFUL
-            if result == 0: self.csv.rows.append("Open")
-            else: self.csv.rows.append("Closed")
+            if result == 0: self.csv.row.append("Open")
+            else: self.csv.row.append("Closed")
 
         self.csv.write_to_dataframe()
         
@@ -198,24 +198,24 @@ class Network:
     
     def ping_ip(self, ip):     
 
-        self.csv.rows = []
+        self.csv.row = []
         start = datetime.now(pytz.timezone("US/Pacific"))
         startTime = start.strftime("%Y-%m-%d %H:%M:%S")
-        self.csv.rows.append(str(startTime))
+        self.csv.row.append(str(startTime))
         response = os.system("ping -c 1 -W 5 " + str(ip) + " > /dev/null")
         pinged = "no"
-        self.csv.rows.append(str(ip))
+        self.csv.row.append(str(ip))
         
         if response == 0: pinged = "yes"
         elif response == 1: pinged = "timeout"
         else: pinged = "no"
             
-        self.csv.rows.append(pinged)
+        self.csv.row.append(pinged)
         self.__test_tcp(ip)
         self.csv.write_to_csv()
     
     def ping_network(self):
-        self.csv.rows = []
+        self.csv.row = []
         start, stop = self.get_range()
         
         while start <= stop:
@@ -250,7 +250,7 @@ if __name__ == "__main__":
     
     print(kernHealthThirdFloor.ports)
     kernHealthThirdFloor.ping_network()
-    kernHealthThirdFloor.write_to_database(kernHealthThirdFloor.csv.table_columns[3:])
+    kernHealthThirdFloor.write_to_database(kernHealthThirdFloor.csv._tableColumns[3:])
     '''Range is from (network + 1) to (broadcast - 1)'''
     startIPInteger, endIPInteger = kernHealthThirdFloor.get_range()
     
