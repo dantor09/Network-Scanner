@@ -24,8 +24,9 @@ class Network:
         
         '''Network class has a database connection object and a csv file writer object
            they will serve as components of the Network class'''
-        self.database = databaseConnection 
-        self.load_ports()
+        self.database = databaseConnection
+        self.portsToScanFileName = "tcp_ports_to_scan.csv"
+        self.__set_tcp_ports()
         self.csv = CSV(fileName, self.ports[0])
         
         '''parse_ip takes an ip address with CIDR and sets up the member variables of Network
@@ -34,10 +35,12 @@ class Network:
         self.__parse_ip(ipAddress)   
         self.networkSize = self.__get_network_size()
    
-    def load_ports(self):
-        with open("ports_to_scan.csv") as f:
-            reader=csv.reader(f)
+    def __set_tcp_ports(self):
+        '''Reads the tcp ports to scan from a csv file and stores them in a list, this is not meant to be called from the driver code.'''
+        with open(self.portsToScanFileName) as f:
+            reader = csv.reader(f)
             self.ports = list(reader)
+
     def __parse_ip(self,ipAddress):
         self.ipOctets = []
         self.networkIpOctets = []

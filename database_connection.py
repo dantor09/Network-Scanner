@@ -24,21 +24,36 @@ class DatabaseConnection:
             data = pd.read_csv(fileName, sep = ",")
             df = pd.DataFrame(data)
 
-            base_sql = "CREATE TABLE IF NOT EXISTS scans (DateTime datetime,Host varchar(50),Ping varchar(50),"
-            sql_ports = [f"{port} varchar(10)" for port in ports]
-            sql_ports = ",".join(sql_ports)
+            # SQL to create the dynamic table
+            baseCreateTableSQL = """
+            CREATE TABLE IF NOT EXISTS scans (
+            DateTime datetime,
+            Host varchar(50),
+            Ping varchar(50),
+            """
+            # Generating columns for each port
+            TCPPortsColumnSQL = ", ".join([f"{port} varchar(8)\n" for port in ports])
 
-            sql = base_sql + sql_ports +")"
+            # Final SQL for table creation
+            CreateTableSQL = baseCreateTableSQL + TCPPortsColumnSQL + ")"
 
+            # Create the table if it exists
             cursor = cnx.cursor()
-            cursor.execute(sql)
+            cursor.execute(CreateTableSQL)
+
+            # SQL to insert data into the table
+            baseInsertSQL = """
+            INSERT INTO scans 
+                (DateTime, Host, Ping, """
             
-            placeholders = ",".join(["%s"] * (len(ports) + 3))
-            temp = ",".join([port for port in ports])
-            base_insert = "INSERT INTO scans(Datetime , Host, Ping," + temp + " ) VALUES ( " + placeholders + ")"
-            print(base_insert)
+            # Generating columns for each port
+            TCPPortsColumnSQL = ",".join([port for port in ports])
+            SQLPlaceholders = ", ".join(["%s"] * (len(ports) + 3))
+            
+            insertSQL = baseInsertSQL + TCPPortsColumnSQL + ") VALUES (" + SQLPlaceholders + ")"
+            
             for row in df.itertuples(index = False):
-                cursor.execute(base_insert,
+                cursor.execute(insertSQL,
                             tuple(row[0:])
                             )
             cnx.commit()
