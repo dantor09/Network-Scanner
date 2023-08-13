@@ -1,3 +1,5 @@
 __pycache__
 *.csv
+!default_tcp_ports.csv
+!tcp_ports_to_scan.csv
 .env.*
