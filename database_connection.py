@@ -23,7 +23,33 @@ class DatabaseConnection:
         else:
             data = pd.read_csv(fileName, sep = ",")
             df = pd.DataFrame(data)
+             
+            # Create the table if it exists
+            cursor = cnx.cursor()
+            
+            cursor.execute("""SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = N'scans'""")
 
+            databaseTableColumns = cursor.fetchall()
+            
+
+            if len(array) == 0:
+                print("The table does not exist")
+            else:
+                
+                print("The table exists")
+            cursor.execute("""SELECT COLUMN_NAME
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = N'scans'""")
+            
+            array_list = cursor.fetchall()
+            print(array_list)
+            print("JFHDKJFHJKDSH")
+            for column in array_list:
+                if column[0] == "TCP22":
+                    print("Found tcp22")
+                else:
+                    print("not found")
+            
             # SQL to create the dynamic table
             baseCreateTableSQL = """
             CREATE TABLE IF NOT EXISTS scans (
@@ -37,8 +63,6 @@ class DatabaseConnection:
             # Final SQL for table creation
             CreateTableSQL = baseCreateTableSQL + TCPPortsColumnSQL + ")"
 
-            # Create the table if it exists
-            cursor = cnx.cursor()
             cursor.execute(CreateTableSQL)
 
             # SQL to insert data into the table
@@ -57,4 +81,5 @@ class DatabaseConnection:
                             tuple(row[0:])
                             )
             cnx.commit()
+
             cnx.close()

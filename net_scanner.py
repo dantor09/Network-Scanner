@@ -243,7 +243,7 @@ if __name__ == "__main__":
     '''object you create'''
 
     #infoDB = DatabaseConnection(username=secrets["USERNAME"], password=secrets["PASSWORD"], host=secrets["HOST"], database=secrets["DATABASE"])
-    infoDB = DatabaseConnection(username="", password="", host="", database="")
+    infoDB = DatabaseConnection(username=secrets["USERNAME"], password=secrets["PASSWORD"], host=secrets["HOST"], database=secrets["DATABASE"])
     
     '''Parameters to create a Network object are: (IP with CIDR, csv file to write content to, Database connection object) '''
     kernHealthThirdFloor = Network(ipAddress = ipCIDR, fileName="KH3F.csv", databaseConnection=infoDB)
