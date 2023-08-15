@@ -27,7 +27,7 @@ class Network:
         self.database = databaseConnection
         self.portsToScanFileName = "tcp_ports_to_scan.csv"
         self.__set_tcp_ports()
-        self.csv = CSV(fileName, self.ports[0])
+        self.csv = CSV(fileName, self.ports)
         
         '''parse_ip takes an ip address with CIDR and sets up the member variables of Network
            which include ipOctets list which holds each octet and the CIDR in different indexes.'''
@@ -39,7 +39,11 @@ class Network:
         '''Reads the tcp ports to scan from a csv file and stores them in a list, this is not meant to be called from the driver code.'''
         with open(self.portsToScanFileName) as f:
             reader = csv.reader(f)
-            self.ports = list(reader)
+            reader = list(reader)
+            self.ports = [int(number) for number in reader[0]]
+            self.ports.sort()
+            self.ports = [str(number) for number in self.ports]
+            print(len(self.ports))
 
     def __parse_ip(self,ipAddress):
         self.ipOctets = []
@@ -178,7 +182,7 @@ class Network:
     
     def __test_tcp(self, ip):
 
-        for port in self.ports[0]:
+        for port in self.ports:
             result = self.scan_port(ip, port)
 
             # SUCCESSFUL

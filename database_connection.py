@@ -8,7 +8,22 @@ class DatabaseConnection:
         self.password = password
         self.host = host
         self.database = database
-        
+        self.tableName = "scans"
+    
+    def table_exists(self):
+    
+        self.cursor.execute(f"""SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = N'{self.tableName}'""")
+        tableInformation = self.cursor.fetchall()
+        return 0 if len(tableInformation) == 0 else len(tableInformation)
+   
+    def get_database_columns(self):
+
+        self.cursor.execute(f"""SELECT COLUMN_NAME
+                               FROM INFORMATION_SCHEMA.COLUMNS
+                               WHERE TABLE_NAME = N'{self.tableName}'""")
+       
+        columnsList = self.cursor.fetchall()
+        return columnsList[3:]
     def write_to_database(self, fileName, ports):
         
         try:
@@ -24,35 +39,37 @@ class DatabaseConnection:
             data = pd.read_csv(fileName, sep = ",")
             df = pd.DataFrame(data)
              
-            # Create the table if it exists
-            cursor = cnx.cursor()
+            self.cursor = cnx.cursor()
+             
+            #if self.table_exists(): 
             
-            cursor.execute("""SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = N'scans'""")
-
-            databaseTableColumns = cursor.fetchall()
+            localPorts = [string[3:] for string in ports]
+            intLocalPorts = [int(number) for number in localPorts]
+            
+            minValue = min(intLocalPorts)
+            maxValue = max(intLocalPorts)
+            self.tableName = self.tableName + str(minValue)+ "_" + str(maxValue) + "_" + str(len(intLocalPorts))
+            columnsList = self.get_database_columns()
+            columnsPort = [string[0][3:] for string in columnsList]
+            columnsPort = [int(string) for string in columnsPort]
+            columnsPort.sort()
+            columnsPort = [str(string) for string in columnsPort]
+            
             
 
-            if len(array) == 0:
-                print("The table does not exist")
+            print(len(columnsPort))
+            print(len(localPorts))
+            if columnsPort == localPorts or len(columnsPort) == 0 :
+                print("THEY ALL MATCH")
             else:
                 
-                print("The table exists")
-            cursor.execute("""SELECT COLUMN_NAME
-FROM INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_NAME = N'scans'""")
+                print("THEY DO NOT MATCH")
+                self.tableName = self.tableName + str(len(intLocalPorts))
             
-            array_list = cursor.fetchall()
-            print(array_list)
-            print("JFHDKJFHJKDSH")
-            for column in array_list:
-                if column[0] == "TCP22":
-                    print("Found tcp22")
-                else:
-                    print("not found")
-            
+
             # SQL to create the dynamic table
-            baseCreateTableSQL = """
-            CREATE TABLE IF NOT EXISTS scans (
+            baseCreateTableSQL = f"""
+            CREATE TABLE IF NOT EXISTS {self.tableName} (
             DateTime datetime,
             Host varchar(50),
             Ping varchar(50),
@@ -63,11 +80,11 @@ WHERE TABLE_NAME = N'scans'""")
             # Final SQL for table creation
             CreateTableSQL = baseCreateTableSQL + TCPPortsColumnSQL + ")"
 
-            cursor.execute(CreateTableSQL)
+            self.cursor.execute(CreateTableSQL)
 
             # SQL to insert data into the table
-            baseInsertSQL = """
-            INSERT INTO scans 
+            baseInsertSQL = f"""
+            INSERT INTO {self.tableName} 
                 (DateTime, Host, Ping, """
             
             # Generating columns for each port
@@ -77,7 +94,7 @@ WHERE TABLE_NAME = N'scans'""")
             insertSQL = baseInsertSQL + TCPPortsColumnSQL + ") VALUES (" + SQLPlaceholders + ")"
             
             for row in df.itertuples(index = False):
-                cursor.execute(insertSQL,
+                self.cursor.execute(insertSQL,
                             tuple(row[0:])
                             )
             cnx.commit()
