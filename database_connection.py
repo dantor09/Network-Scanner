@@ -8,11 +8,11 @@ class DatabaseConnection:
         self.password = password
         self.host = host
         self.database = database
-        self.tableName = "scans"
+        self.tableName = "tcpScans"
     
-    def table_exists(self):
+    def table_exists(self, tableName):
     
-        self.cursor.execute(f"""SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = N'{self.tableName}'""")
+        self.cursor.execute(f"""SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = N'{tableName}'""")
         tableInformation = self.cursor.fetchall()
         return 0 if len(tableInformation) == 0 else len(tableInformation)
    
@@ -22,8 +22,8 @@ class DatabaseConnection:
                                FROM INFORMATION_SCHEMA.COLUMNS
                                WHERE TABLE_NAME = N'{self.tableName}'""")
        
-        columnsList = self.cursor.fetchall()
-        return columnsList[3:]
+        tcpColumnsList = self.cursor.fetchall()
+        return tcpColumnsList[3:]
     def write_to_database(self, fileName, ports):
         
         try:
@@ -41,32 +41,27 @@ class DatabaseConnection:
              
             self.cursor = cnx.cursor()
              
-            #if self.table_exists(): 
+            #if self.table_exists(self.tableName): 
             
             localPorts = [string[3:] for string in ports]
             intLocalPorts = [int(number) for number in localPorts]
             
             minValue = min(intLocalPorts)
             maxValue = max(intLocalPorts)
-            self.tableName = self.tableName + str(minValue)+ "_" + str(maxValue) + "_" + str(len(intLocalPorts))
-            columnsList = self.get_database_columns()
-            columnsPort = [string[0][3:] for string in columnsList]
-            columnsPort = [int(string) for string in columnsPort]
-            columnsPort.sort()
-            columnsPort = [str(string) for string in columnsPort]
-            
-            
 
-            print(len(columnsPort))
-            print(len(localPorts))
-            if columnsPort == localPorts or len(columnsPort) == 0 :
+            self.tableName = str(len(intLocalPorts)) + "_" + self.tableName + str(minValue)+ "_" + str(maxValue) 
+            tcpColumns = self.get_database_columns()
+            
+            tcpColumnsPorts = [string[0][3:] for string in tcpColumns]
+            tcpColumnsPorts = [int(string) for string in tcpColumnsPorts]
+            tcpColumnsPorts.sort()
+            tcpColumnsPorts = [str(string) for string in tcpColumnsPorts]            
+            if tcpColumnsPorts == localPorts or len(tcpColumnsPorts) == 0 :
                 print("THEY ALL MATCH")
             else:
-                
                 print("THEY DO NOT MATCH")
-                self.tableName = self.tableName + str(len(intLocalPorts))
             
-
+        
             # SQL to create the dynamic table
             baseCreateTableSQL = f"""
             CREATE TABLE IF NOT EXISTS {self.tableName} (
