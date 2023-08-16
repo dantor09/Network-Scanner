@@ -67,7 +67,7 @@ class Network:
     def get_ip_address(self):
         return ".".join([str(octet) for octet in self.ipOctets[0:4]])
      
-    def __get_octet_index(self):
+    def get_octet_index(self):
         '''Obtain the octet index under which the CIDR lands on'''
         self.octetIndex = 0
         CIDR = int(self.CIDR)
@@ -90,7 +90,7 @@ class Network:
         
         """Returns the network address of the current IP address"""        
         previousSubNetworkIP, currentSubNetworkIP = 0, 0
-        self.octetIndex = self.__get_octet_index()
+        self.octetIndex = self.get_octet_index()
 
         """Get the network address of the current IP address"""
         while currentSubNetworkIP <= self.ipOctets[self.octetIndex]:
