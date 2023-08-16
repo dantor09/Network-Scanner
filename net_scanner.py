@@ -43,7 +43,6 @@ class Network:
             self.ports = [int(number) for number in reader[0]]
             self.ports.sort()
             self.ports = [str(number) for number in self.ports]
-            print(len(self.ports))
 
     def __parse_ip(self,ipAddress):
         self.ipOctets = []
@@ -68,7 +67,7 @@ class Network:
     def get_ip_address(self):
         return ".".join([str(octet) for octet in self.ipOctets[0:4]])
      
-    def get_octet_index(self):
+    def __get_octet_index(self):
         '''Obtain the octet index under which the CIDR lands on'''
         self.octetIndex = 0
         CIDR = int(self.CIDR)
@@ -91,7 +90,7 @@ class Network:
         
         """Returns the network address of the current IP address"""        
         previousSubNetworkIP, currentSubNetworkIP = 0, 0
-        self.octetIndex = self.get_octet_index()
+        self.octetIndex = self.__get_octet_index()
 
         """Get the network address of the current IP address"""
         while currentSubNetworkIP <= self.ipOctets[self.octetIndex]:
@@ -136,8 +135,8 @@ class Network:
         octet3 = int((ipInteger % (256*256)) / 256)
         octet4 = int(ipInteger % 256)
          
-        return str(octet1) + '.' + str(octet2) + '.' + str(octet3) + '.' + str(octet4)
-    
+        return str(octet1) + '.' + str(octet2) + '.' + str(octet3) + '.' + str(octet4)    
+
     def get_range(self):
         
         self.get_network()
@@ -227,8 +226,8 @@ class Network:
             self.ping_ip(ip)            
             start += 1
 
-    def write_to_database(self, ports):
-        self.database.write_to_database(self.csv.fileName, ports)
+    def write_to_database(self):
+        self.database.write_to_database(self.csv.fileName, self.csv._tableColumns[3:])
         
 if __name__ == "__main__":
     
@@ -246,25 +245,26 @@ if __name__ == "__main__":
     '''Create a database connection object. This connection can be tied to any network'''
     '''object you create'''
 
-    #infoDB = DatabaseConnection(username=secrets["USERNAME"], password=secrets["PASSWORD"], host=secrets["HOST"], database=secrets["DATABASE"])
-    infoDB = DatabaseConnection(username="", password="", host="", database="")
+    infoDB = DatabaseConnection(username=secrets["USERNAME"], password=secrets["PASSWORD"], host=secrets["HOST"], database=secrets["DATABASE"])
     
     '''Parameters to create a Network object are: (IP with CIDR, csv file to write content to, Database connection object) '''
-    kernHealthThirdFloor = Network(ipAddress = ipCIDR, fileName="KH3F.csv", databaseConnection=infoDB)
+    companyFirstFloor = Network(ipAddress = ipCIDR, fileName="firstFloor.csv", databaseConnection=infoDB)
     
-    print(kernHealthThirdFloor.ports)
-    kernHealthThirdFloor.ping_network()
-    kernHealthThirdFloor.write_to_database(kernHealthThirdFloor.csv._tableColumns[3:])
-    '''Range is from (network + 1) to (broadcast - 1)'''
-    startIPInteger, endIPInteger = kernHealthThirdFloor.get_range()
-    
-    print("First assignable IP for network: " + str(kernHealthThirdFloor.get_network()) + " is " + str(kernHealthThirdFloor.decode_ip(startIPInteger)))
-    print("Last assignable IP for network: " + str(kernHealthThirdFloor.get_network()) + " is " + str(kernHealthThirdFloor.decode_ip(endIPInteger)))
-    
-    print("This is the broadcast: " + kernHealthThirdFloor.get_broadcast())
+    companyFirstFloor.ping_network()
+    companyFirstFloor.write_to_database()
 
-    print("This is the ip: " + kernHealthThirdFloor.ip)
-    if kernHealthThirdFloor.scan_port(kernHealthThirdFloor.ip, 53) == 0:
+    '''Range is from (network + 1) to (broadcast - 1)'''
+    startIPInteger, endIPInteger = companyFirstFloor.get_range()
+    
+    print("First assignable IP for network: " + str(companyFirstFloor.get_network()) + " is " + str(companyFirstFloor.decode_ip(startIPInteger)))
+    print("Last assignable IP for network: " + str(companyFirstFloor.get_network()) + " is " + str(companyFirstFloor.decode_ip(endIPInteger)))
+    
+    print("This is the broadcast: " + companyFirstFloor.get_broadcast())
+
+    print("This is the ip: " + companyFirstFloor.ip)
+    
+    print("This is the network size: " + str(companyFirstFloor.networkSize))
+    if companyFirstFloor.scan_port(companyFirstFloor.ip, 53) == 0:
         print("Port 53 is open")
     else:
         print("Port 53 is closed")

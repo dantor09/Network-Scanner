@@ -9,21 +9,7 @@ class DatabaseConnection:
         self.host = host
         self.database = database
         self.tableName = "tcpScans"
-    
-    def table_exists(self, tableName):
-    
-        self.cursor.execute(f"""SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = N'{tableName}'""")
-        tableInformation = self.cursor.fetchall()
-        return 0 if len(tableInformation) == 0 else len(tableInformation)
-   
-    def get_database_columns(self):
-
-        self.cursor.execute(f"""SELECT COLUMN_NAME
-                               FROM INFORMATION_SCHEMA.COLUMNS
-                               WHERE TABLE_NAME = N'{self.tableName}'""")
-       
-        tcpColumnsList = self.cursor.fetchall()
-        return tcpColumnsList[3:]
+     
     def write_to_database(self, fileName, ports):
         
         try:
@@ -34,15 +20,12 @@ class DatabaseConnection:
                     database = self.database
                     )
         except Exception as e:
-            print("Something went wrong with the connection to " + str(self.database))
+            print(f"Something went wrong with the connection to {self.database}: {e}")
         else:
             data = pd.read_csv(fileName, sep = ",")
             df = pd.DataFrame(data)
-             
             self.cursor = cnx.cursor()
-             
-            #if self.table_exists(self.tableName): 
-            
+
             localPorts = [string[3:] for string in ports]
             intLocalPorts = [int(number) for number in localPorts]
             
@@ -50,18 +33,7 @@ class DatabaseConnection:
             maxValue = max(intLocalPorts)
 
             self.tableName = str(len(intLocalPorts)) + "_" + self.tableName + str(minValue)+ "_" + str(maxValue) 
-            tcpColumns = self.get_database_columns()
-            
-            tcpColumnsPorts = [string[0][3:] for string in tcpColumns]
-            tcpColumnsPorts = [int(string) for string in tcpColumnsPorts]
-            tcpColumnsPorts.sort()
-            tcpColumnsPorts = [str(string) for string in tcpColumnsPorts]            
-            if tcpColumnsPorts == localPorts or len(tcpColumnsPorts) == 0 :
-                print("THEY ALL MATCH")
-            else:
-                print("THEY DO NOT MATCH")
-            
-        
+             
             # SQL to create the dynamic table
             baseCreateTableSQL = f"""
             CREATE TABLE IF NOT EXISTS {self.tableName} (
@@ -93,5 +65,4 @@ class DatabaseConnection:
                             tuple(row[0:])
                             )
             cnx.commit()
-
             cnx.close()
