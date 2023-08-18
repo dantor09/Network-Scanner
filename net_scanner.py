@@ -89,15 +89,15 @@ class Network:
     def __get_subnetwork_ip(self):
         
         """Returns the network address of the current IP address"""        
-        previousSubNetworkIP, currentSubNetworkIP = 0, 0
+        previousSubnetworkIP, currentSubNetworkIP = 0, 0
         self.octetIndex = self.get_octet_index()
 
         """Get the network address of the current IP address"""
         while currentSubNetworkIP <= self.ipOctets[self.octetIndex]:
-            previousSubNetworkIP = currentSubNetworkIP
+            previousSubnetworkIP = currentSubNetworkIP
             currentSubNetworkIP += self.networkSize
 
-        return previousSubNetworkIP
+        return previousSubnetworkIP
 
     def get_network(self):
         '''Tested'''
